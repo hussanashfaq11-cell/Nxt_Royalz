@@ -1,35 +1,34 @@
-<?php
-if(!defined('BASEPATH')) {
-   die('Direct access to the script is not allowed');
-}
+<?php include 'header.php'; ?>
+<div class="container">
+  <div class="row">
+    <div class="col-md-8 col-md-offset-2">
+		 <div class="panel panel-default">
+          <div class="panel-body">
+      <form action="admin/account" method="post" enctype="multipart/form-data">
+     
+          <div class="form-group">
+            <label for="charge" class="control-label">Current Password</label>
+            <input type="password" class="form-control" value="" name="current_password">
+          </div>
 
-if (!$admin["access"]["super_admin"]){
-header("Location:" . site_url(""));
-}
+          <div class="form-group">
+            <label for="charge" class="control-label">New Password</label>
+            <input type="password" class="form-control" value="" name="password">
+          </div>
 
-if( route(1) == "account" && $_POST ){
+          <div class="form-group">
+            <label for="charge" class="control-label">Password again</label>
+            <input type="password" class="form-control" value="" name="confirm_password">
+          </div>
+          <button type="submit" class="btn btn-primary">Change Password</button>
+        </form>
+      </div><br>
 
-  $pass     = md5(sha1(md5($_POST["current_password"])));
-  $new_pass = $_POST["password"];
-  $new_again = $_POST["confirm_password"];
-$old = $admin["password"];
-  if(	$old != $pass ){
-$error      = 1;
-                $errorText  = "Error";
-                $icon       = "error";
-  }elseif( strlen($new_pass) < 8 ){
-    $error    = 1;
-    $errorText= $languageArray["error.account.password.length"];
-  }elseif( $new_pass != $new_again ){
-    $error    = 1;
-    $errorText= $languageArray["error.account.passwords.notmach"];
-  }else{
-   
-$update = $conn->prepare("UPDATE admins SET password=:pass WHERE admin_id=:id ");
-$update = $update->execute(array("id"=>$admin["admin_id"],"pass"=>md5(sha1(md5($new_pass))) ));
-header("Location:".site_url("admin/logout"));
-  }
+      </div>
+</div>
 
-}
-require admin_view('account');
-?>
+    </div>
+  </div>
+</div>
+
+<?php include 'footer.php'; ?>

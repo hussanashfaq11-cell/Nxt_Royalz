@@ -1,145 +1,90 @@
-<?php
-if(!defined('BASEPATH')) {
-   die('Direct access to the script is not allowed');
-}
+<?php include 'header.php'; ?>
 
- if( $admin["access"]["videop"] != 1  ):
-    header("Location:".site_url("admin"));
-    exit();
-  endif;
-  if( empty($action) ):
-      
-    $earn       = $conn->prepare("SELECT * FROM earn ");
-    $earn       -> execute(array());
-    $earn      = $earn->fetchAll(PDO::FETCH_ASSOC);
-    $kupon_kullananlar        = $conn->prepare("SELECT * FROM kupon_kullananlar ");
-    $kupon_kullananlar        -> execute(array());
-    $kupon_kullananlar        = $kupon_kullananlar->fetchAll(PDO::FETCH_ASSOC);
-endif;
+<div class="content-body">
+    <div class="pd-x-0">
+        <div class="d-sm-flex align-items-center justify-content-between mg-b-20 mg-lg-b-25 mg-xl-b-30">
+            <div>
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb breadcrumb-style1 mg-b-10 dbg-none">
+                        <li class="breadcrumb-item"><a href="#"><?= constant("HOME") ?></a></li>
+                        <li class="breadcrumb-item active" aria-current="page">Promotion</li>
+                    </ol>
+                </nav>
+            </div>
+        </div>
 
-if( $_POST ):
+        <div class="row row-xs">
 
-        if( route(2) == "set_earnnote" ):
-          $id = route(3);
-          $note= $_POST["note"];
-          $update = $conn->prepare("UPDATE earn SET earn_note=:note WHERE earn_id=:id ");
-          $update->execute(array("id"=>$id,"note"=>$note));
-          header("Location:".site_url("admin/earn"));
-     endif;
-endif;
+            <div class="col">
+                <div class="card dwd-100">
+                    <div class="card-body pd-20 table-responsive dof-inherit">
 
-  if( $_SESSION["client"]["data"] ):
-    $data = $_SESSION["client"]["data"];
-    foreach ($data as $key => $value) {
-      $$key = $value;
-    }
-    unset($_SESSION["client"]);
-  endif;
+                        <div class="container-fluid pd-t-20 pd-b-20">
+                            <table class="table" id="dt">
+                                <thead>
+                                    <tr>
+                                        <th class="p-l">ID</th>
+                                        <th>User</th>
+                                        <th>link</th>
+                                        <th>Note</th>
+                                        <th>Status</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <form id="changebulkForm" method="post">
+                                    <tbody>
+                                        <?php foreach($earn as $earn ): ?>
+                                        <tr>
 
-  if( !route(2) ):
-    $page   = 1;
-  elseif( is_numeric(route(2)) ):
-    $page   = route(2);
-  elseif( !is_numeric(route(2)) ):
-    $action = route(2);
-  endif;
+                                            <td class="p-l"><?php echo $earn["earn_id"] ?></td>
+                                            <td><?php echo $user["username"] ?></td>
+                                            <td><a   target="_blank" href="<?php echo $earn["link"] ?>"><?php echo $earn["link"] ?></td>
+                                            <td><?php echo $earn["earn_note"] ?></td>
+                                            <td><?php echo $earn["status"] ?></td>
 
-  if( empty($action) ):
-      
-    $earn       = $conn->prepare("SELECT * FROM earn ");
-    $earn       -> execute(array());
-    $earn      = $earn->fetchAll(PDO::FETCH_ASSOC);
-    $kupon_kullananlar        = $conn->prepare("SELECT * FROM kupon_kullananlar ");
-    $kupon_kullananlar        -> execute(array());
-    $kupon_kullananlar        = $kupon_kullananlar->fetchAll(PDO::FETCH_ASSOC);
-    require admin_view('earn');
-	
-	
-	
-	
-	elseif( $action == "delete" ):
-	
-	if( $_POST ):
-		 
-		 foreach ($_POST as $key => $value) {
-			$$key = $value;
-		  }
-		  
-		  
-		  
-		  
-		   $delete = $conn->prepare("DELETE FROM kuponlar WHERE id=:kupon_id");
-          $delete->execute(array("kupon_id"=>$kupon_id));
-            if( $delete ):
-			
-              header("Location:".site_url("admin/kuponlar"));
-            else:
-			
-              header("Location:".site_url("admin/kuponlar"));
-            endif;
-			
-			
-	  
-	endif;
-	
-	
-  elseif( $action == "new" ):
-    if( $_POST ):
-      foreach ($_POST as $key => $value) {
-        $$key = $value;
-      }
-	  
-	  
-	  
-	    $stmt = $conn->prepare("SELECT count(*) FROM broadcasts WHERE title= ?");
-		$stmt->execute([$title]);
-		$count = $stmt->fetchColumn();
+<td class="service-block__action">
+                                    <div class="dropdown pull-right">
+                     <button type="button" class="btn btn-default btn-xs dropdown-toggle btn-xs-caret" data-toggle="dropdown">Options <span class="caret"></span></button>
+                     <ul class="dropdown-menu">
+                      
+      <?php?>
+                              <li><a href="#" data-toggle="modal" data-target="#confirmChange" data-href="<?=site_url("admin/earn/earn_review/".$earn["earn_id"])?>">Under Review</a></li>
+                            <?php?>
+                              <li><a href="#"  data-toggle="modal" data-target="#modalDiv" data-action="earn_note" data-id="<?php echo $earn["earn_id"] ?>">Edit Note</a></li>
+                            <?php ?>
+                              <li><a href="#" data-toggle="modal" data-target="#confirmChange" data-href="<?=site_url("admin/earn/earn_grant/".$earn["earn_id"])?>">Funds Granted</a></li>
+                            
+                            <?php ?>
+                              <li><a href="#" data-toggle="modal" data-target="#confirmChange" data-href="<?=site_url("admin/earn/earn_reject/".$earn["earn_id"])?>">Reject</a></li>
+                            
+                                        </tr>
+                                        <?php endforeach; ?>
+                                    </tbody>
+                                    <input type="hidden" name="bulkStatus" id="bulkStatus" value="0">
+                                </form>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
+<div class="modal modal-center fade" id="confirmChange" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" data-backdrop="static">
+   <div class="modal-dialog modal-dialog-center" role="document">
+      <div class="modal-content">
+         <div class="modal-body text-center">
+            <h4>Are you sure you want to update the status?</h4>
+            <div align="center">
+               <a class="btn btn-primary" href="" id="confirmYes">Yes</a>
+               <button type="button" class="btn btn-default" data-dismiss="modal">No</button>
+<ul>
+</td>
+            </div>
+         </div>
+      </div>
+   </div>
+</div>
 
-      if($count>0):
-        $error    = 1;
-        $errorText= "Bu kupon adı mevcut";
-        $icon     = "error";
-      else:
-          $conn->beginTransaction();
-          $insert = $conn->prepare("INSERT INTO broadcasts SET title=:title, status=:status, description=:description");
-          $insert = $insert->execute(array("title"=>$title,"status"=>$status,"description"=>$description));
-          
-          if( $insert ):
-            $conn->commit();
-            $referrer = site_url("admin/broadcasts");
-            $error    = 1;
-            $errorText= "Success";
-            $icon     = "success";
-          else:
-            $conn->rollBack();
-            $error    = 1;
-            $errorText= "Failed";
-            $icon     = "error";
-          endif;
-      endif;
-      echo json_encode(["t"=>"error","m"=>$errorText,"s"=>$icon,"r"=>$referrer]);
-    
-    endif;
-  endif;
-
-if( route(2) == "earn_reject" ):
-    $id     = route(3);
-    $update = $conn->prepare("UPDATE earn SET status=:status WHERE earn_id=:id ");
-    $update->execute(array("status"=>"Rejected","id"=>$id));
-
-header("Location:".site_url("admin/earn"));
-endif;
-  if( route(2) == "earn_grant" ):
-    $id     = route(3);
-    $update = $conn->prepare("UPDATE earn SET status=:status WHERE earn_id=:id ");
-    $update->execute(array("status"=>"Funds Granted","id"=>$id));
-    header("Location:".site_url("admin/earn"));
- endif;
- if( route(2) == "earn_review" ):
-    $id     = route(3);
-    $update = $conn->prepare("UPDATE earn SET status=:status WHERE earn_id=:id ");
-    $update->execute(array("status"=>"Under Review","id"=>$id));
-  header("Location:".site_url("admin/earn"));
-
-endif;
+<?php include 'footer.php'; ?>

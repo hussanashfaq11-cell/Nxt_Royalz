@@ -1,252 +1,101 @@
-<?php
+<?php include 'header.php'; ?>
+<div class="container-fluid">
+<div class="row">
+<div class="col-md-2">
+<ul class="nav nav-pills nav-stacked p-b">
+<li class=""><a href="/admin/referrals">Referrals</a></li>
+<li class="active"><a href="/admin/payouts">Payouts</a></li>
+</ul>
+</div>
+<div class="col-md-10">
+<ul class="nav nav-tabs">
+<li class="pull-right p-b">
+<form class="form-inline" action="" method="GET">
+<div class="input-group">
+<input type="text" name="search" class="form-control" placeholder="Search">
+<input type="hidden" name="type" value="referrals">
+<span class="input-group-btn">
+<button type="submit" class="btn btn-default"><span class="glyphicon glyphicon-search" aria-hidden="true"></span></button>
+</span>
+</div>
+</form>
+</li>
+</ul>
+                            <table class="table order-table">
+                                <thead>
+                                    <tr>
+                                        <th class="p-l">#</th>
+                                        <th> Code</th>
+                                        <th> Username </th>
+                                        <th>Amount Requested</th>
+                                        <th>Payout Status</th>
+                                        <th>Payout Created At</th>
+                                        <th>Payout Updated At</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <form id="changebulkForm" action="<?php echo site_url("admin/payouts") ?>" method="post">
+                                    <tbody>
+                                        <?php foreach ($referral_payouts as $referral_payout) : ?>
+                                            <tr>
+                                                <td><?php echo $referral_payout["r_p_id"] ?></td>
+                                                <td><?php echo $referral_payout["r_p_code"] ?></td>
+                                                <td><?php echo $referral_payout["username"] ?></td>
+                                                <td><?php echo $referral_payout["r_p_amount_requested"] ?></td>
+                                                <td><?php if ($referral_payout["r_p_status"] == 0) {
+                                                        echo "Pending";
+                                                    } elseif (
+                                                        $referral_payout["r_p_status"] == 1
+                                                    ) {
+                                                        echo "Disapproved ";
+                                                    }elseif (
+                                                        $referral_payout["r_p_status"] == 2
+                                                    ){
+                                                        echo "Approved ";
+                                                    } else {
+                                                        echo "Rejected ";
+                                                    }
+                                                       
+                                                      ?></td>
+                                                <td><?php echo $referral_payout["r_p_requested_at"] ?></td>
+                                                <td><?php echo $referral_payout["r_p_updated_at"] ?></td>
+
+
+                                                <td class="service-block__action">
+                                                    <div class="dropdown pull-right">
+                                                        <button type="button" class="btn btn-primary btn-xs dropdown-toggle btn-xs-caret" data-toggle="dropdown">Action</button>
+                                                        <ul class="dropdown-menu">
+
+                                                            <?php if ($referral_payout["r_p_status"] == 0) : ?>
+                                                              
+                                                                    <li><a href="<?= site_url("admin/payouts?approve=" . $referral_payout["r_p_id"]) ?>">Approve</a></li>
+                                                                    <li><a href="<?= site_url("admin/payouts?disapprove=" . $referral_payout["r_p_id"]) ?>">Disapprove</a></li>
+                                                                    <li><a href="<?= site_url("admin/payouts?reject=" . $referral_payout["r_p_id"]) ?>">Reject</a></li>
+
+                                                             
+                                                            <?php else : ?>
+
+                                                                <li><a href="javascript:void(0)">No options to use</a></li>
+                                                            <?php endif; ?>
+
+                                                        </ul>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    </tbody>
+                                    <input type="hidden" name="bulkStatus" id="bulkStatus" value="0">
+                                </form>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+<?php include 'footer.php'; ?>
 
-if(!defined('BASEPATH')) {
-   die('Direct access to the script is not allowed');
-}
-
-if( $admin["access"]["admin_access"] != 1  ){
-
-    header("Location:".site_url("admin"));
-
-    exit();
-}
-
-if ($_GET["approve"]) :
-
-    $r_p_id  = htmlspecialchars($_GET["approve"]);
-
-    $r_payout = $conn->prepare("SELECT * FROM referral_payouts INNER JOIN clients ON clients.ref_code=referral_payouts.r_p_code
-     INNER JOIN referral ON referral.referral_code=referral_payouts.r_p_code  WHERE  r_p_id=:r_p_id");
-    $r_payout->execute(array("r_p_id" => $r_p_id));
-    $r_payout = $r_payout->fetchAll(PDO::FETCH_ASSOC);
-
-    $user  = $conn->prepare("SELECT * FROM clients WHERE client_id=:client_id ");
-    $user->execute(array("client_id" => $r_payout[0]["client_id"]));
-    $user  = $user->fetch(PDO::FETCH_ASSOC);
-
-    if ($r_payout[0]["r_p_status"] == 2 || $r_payout[0]["r_p_status"] == 1) {
-
-        //already processsed
-        Header("Location:" . site_url('admin/payouts'));
-    } else {
-
-        // print_r($r_payout);
-        // exit();
-
-        $conn->beginTransaction();
-        $update = $conn->prepare("UPDATE referral_payouts SET 	r_p_status=:r_p_status , 
-        r_p_updated_at=:r_p_updated_at WHERE r_p_id=:r_p_id");
-        $update = $update->execute(array("r_p_id" => $r_p_id, "r_p_status" => 2, "r_p_updated_at" =>  date("Y-m-d H:i:s")));
-
-
-        $insert = $conn->prepare("INSERT INTO payments SET client_id=:client_id , client_balance=:client_balance , 
-            payment_amount=:payment_amount , payment_method=:payment_method ,
-            payment_status=:payment_status , payment_delivery=:payment_delivery , payment_note=:payment_note,
-            payment_create_date=:payment_create_date ,
-             payment_update_date=:payment_update_date, 	payment_ip=:payment_ip , 
-             payment_extra=:payment_extra ");
-        $insert = $insert->execute(array(
-            "client_id" => $r_payout[0]["client_id"],
-            "client_balance" => $r_payout[0]["balance"],
-            "payment_amount" => $r_payout[0]["r_p_amount_requested"], "payment_method" => 25,
-            "payment_status" => 3, "payment_delivery" => 2, "payment_note" => "Referral Amount of Referred Payout id : $r_p_id ",
-             "payment_create_date" => date("Y-m-d H:i:s"),
-            "payment_update_date" => date("Y-m-d H:i:s"), "payment_ip" => GetIP(),
-            "payment_extra" => "Referral Amount of referred payout id : $r_p_id "
-        ));
-
-
-
-
-        if ($insert) : $last_payment_id = $conn->lastInsertId();
-        endif;
-
-
-        //add balance too
-
-        $update4 = $conn->prepare("UPDATE clients SET balance=:balance WHERE client_id=:id ");
-        $update4 = $update4->execute(array(
-            "id" => $user["client_id"],
-            "balance" => $r_payout[0]["r_p_amount_requested"] + $user["balance"]
-        ));
-
-        //add balance too
-
-
-
-
-        $update2 = $conn->prepare("UPDATE referral SET 
-        referral_earned_commision=:referral_earned_commision ,
-        referral_requested_commision=:referral_requested_commision WHERE referral_code=:referral_code ");
-        $update2 = $update2->execute(array(
-            "referral_code" => $r_payout[0]["r_p_code"],
-            "referral_earned_commision" => $r_payout[0]["referral_earned_commision"] + $r_payout[0]["r_p_amount_requested"],
-            "referral_requested_commision" => 0
-        ));
-
-        //success or failure
-        if ($update2 && $update && $insert && $update4) :
-            $conn->commit();
-            $success    = 1;
-            $successText = "Successful";
-            $icon     = "success";
-
-
-          $amount = $r_payout[0]['r_p_amount_requested'];  
-            
-        //cleints_report
-        $insert5 = $conn->prepare("INSERT INTO client_report SET client_id=:client_id
-         ,action=:action, report_ip=:report_ip , report_date=:report_date");
-        $insert5 = $insert5->execute(array(
-            "client_id" => $user["client_id"],
-            "action" => "Amount added :  $amount , #Referral Payout id : $r_p_id " , 
-            "report_ip" =>  GetIP(), "report_date" => date("Y-m-d H:i:s")
-        ));
-
-        //cleints_report
-
-
-        else :
-            $conn->rollBack();
-            $error    = 1;
-            $errorText = "Unsuccessful";
-            $icon     = "error";
-            if ($update4) :
-                $update4 = $conn->prepare("UPDATE clients SET balance=:balance WHERE client_id=:id ");
-                $update4 = $update4->execute(array(
-                    "id" => $user["client_id"],
-                    "balance" => $user["balance"]
-                ));
-            endif;
-            if ($insert) :
-                $delete = $conn->prepare("DELETE FROM payments WHERE payment_id=:id ");
-                $delete = $delete->execute(array(
-                    "id" => $last_payment_id,
-                ));
-            endif;
-
-
-        endif;
-        Header("Location:" . site_url('admin/payouts'));
-    }
-
-
-elseif ($_GET["disapprove"]) :
-
-    $r_p_id  = $_GET["disapprove"];
-
-
-    $r_payout = $conn->prepare("SELECT * FROM referral_payouts INNER JOIN clients ON clients.ref_code=referral_payouts.r_p_code
-     INNER JOIN referral ON referral.referral_code=referral_payouts.r_p_code  WHERE  r_p_id=:r_p_id");
-    $r_payout->execute(array("r_p_id" => $r_p_id));
-    $r_payout = $r_payout->fetchAll(PDO::FETCH_ASSOC);
-
-    if ($r_payout[0]["r_p_status"] == 2 || $r_payout[0]["r_p_status"] == 1) {
-
-        //already processsed
-        Header("Location:" . site_url('admin/payouts'));
-    } else {
-
-        $conn->beginTransaction();
-        $update = $conn->prepare("UPDATE referral_payouts SET r_p_status=:r_p_status , 
-        r_p_updated_at=:r_p_updated_at WHERE r_p_id=:r_p_id ");
-        $update = $update->execute(array("r_p_id" => $r_p_id, "r_p_status" => 1, "r_p_updated_at" =>  date("Y-m-d H:i:s")));
-
-        $update2 = $conn->prepare("UPDATE referral SET 
-     referral_requested_commision=:referral_requested_commision WHERE referral_code=:referral_code ");
-        $update2 = $update2->execute(array(
-            "referral_code" => $r_payout[0]["r_p_code"],
-            "referral_requested_commision" => 0
-        ));
-
-        //success or failure
-        if ($update2 && $update) :
-            $conn->commit();
-            $success    = 1;
-            $successText = "Successful";
-            $icon     = "success";
-
-
-        else :
-            $conn->rollBack();
-            $error    = 1;
-            $errorText = "Unsuccessful";
-            $icon     = "error";
-
-
-        endif;
-        Header("Location:" . site_url('admin/payouts'));
-    }
-elseif ($_GET["reject"]) :
-
-    $r_p_id  = $_GET["reject"];
-
-
-    $r_payout = $conn->prepare("SELECT * FROM referral_payouts INNER JOIN clients ON clients.ref_code=referral_payouts.r_p_code
-     INNER JOIN referral ON referral.referral_code=referral_payouts.r_p_code  WHERE  r_p_id=:r_p_id");
-    $r_payout->execute(array("r_p_id" => $r_p_id));
-    $r_payout = $r_payout->fetchAll(PDO::FETCH_ASSOC);
-
-    if ($r_payout[0]["r_p_status"] == 2 || $r_payout[0]["r_p_status"] == 1) {
-
-        //already processsed
-        Header("Location:" . site_url('admin/payouts'));
-    } else {
-
-        $conn->beginTransaction();
-        $update = $conn->prepare("UPDATE referral_payouts SET r_p_status=:r_p_status , 
-        r_p_updated_at=:r_p_updated_at WHERE r_p_id=:r_p_id ");
-        $update = $update->execute(array("r_p_id" => $r_p_id, "r_p_status" => 3, "r_p_updated_at" =>  date("Y-m-d H:i:s")));
-
-        $update2 = $conn->prepare("UPDATE referral SET 
-     referral_rejected_commision=:referral_rejected_commision,
-     referral_requested_commision=:referral_requested_commision WHERE referral_code=:referral_code ");
-        $update2 = $update2->execute(array(
-            "referral_code" => $r_payout[0]["r_p_code"],
-            "referral_rejected_commision" =>$r_payout[0]["referral_rejected_commision"] + $r_payout[0]["r_p_amount_requested"],
-            "referral_requested_commision" => 0
-        ));
-
-        //success or failure
-        if ($update2 && $update) :
-            $conn->commit();
-            $success    = 1;
-            $successText = "Successful";
-            $icon     = "success";
-
-            $amount = $r_payout[0]['r_p_amount_requested'];  
-            
-            //cleints_report
-            $insert5 = $conn->prepare("INSERT INTO client_report SET client_id=:client_id
-             ,action=:action, report_ip=:report_ip , report_date=:report_date");
-            $insert5 = $insert5->execute(array(
-                "client_id" => $user["client_id"],
-                "action" => "Amount rejected :  $amount ,#Referral Payout id : $r_p_id " , 
-                "report_ip" =>  GetIP(), "report_date" => date("Y-m-d H:i:s")
-            ));
-    
-            //cleints_report
-
-
-        else :
-            $conn->rollBack();
-            $error    = 1;
-            $errorText = "Unsuccessful";
-            $icon     = "error";
-
-
-        endif;
-        Header("Location:" . site_url('admin/payouts'));
-    }
-
-endif;
-
-
-
-
-$referral_payouts = $conn->prepare("SELECT * FROM referral_payouts INNER JOIN clients ON clients.ref_code=referral_payouts.r_p_code ORDER BY r_p_id DESC");
-$referral_payouts->execute(array());
-$referral_payouts = $referral_payouts->fetchAll(PDO::FETCH_ASSOC);
-
-
-require admin_view('payouts');

@@ -1,75 +1,118 @@
-<?php
-if(!defined('BASEPATH')) {
-   die('Direct access to the script is not allowed');
-}
-if ($admin["access"]["synced-logs"] != 1):
-    header("Location:" . site_url("admin"));
-    exit();
-endif;
+<?php include 'header.php'; ?>
+<div class="container-fluid">
+
   
-if( route(2) && is_numeric(route(2)) ):
-  $page = route(2);
-else:
-  $page = 1;
+
+   <div class="row">
+      <div class="col-lg-12">
+         <div class="panel panel-default">
+            <div class="panel-heading">
+              Synced Logs
+            </div>
+            <!-- /.panel-heading -->
+            <div class="panel-body">
+               <div class="table-responsive">
+                  <table class="table table-striped">
+                     <thead>
+                        <tr>
+                          <th class="checkAll-th">
+  <div class="checkAll-holder">
+     <input type="checkbox" id="checkAll">
+     <input type="hidden" id="checkAllText" value="order">
+  </div>
+  <div class="action-block">
+     <ul class="action-list" style="margin:5px 0 0 0!important">
+        <li><span class="countlogs"></span> Selected Logs</li>
+        <li>
+           <div class="dropdown">
+              <button type="button" class="btn btn-default btn-xs dropdown-toggle btn-xs-caret" data-toggle="dropdown"> Batch Operations <span class="caret"></span></button>
+              <ul class="dropdown-menu">
+                 <li>
+                   <a class="bulkorder" data-type="delete">Delete</a>
+                 </li>
+              </ul>
+           </div>
+        </li>
+     </ul>
+  </div>
+                          </th>
+<th>API Name</th>
+<th>Service Name</th>
+<th>Changes</th>
+<th>Action</th>
+<th>When</th>
+</tr>
+</thead>
+<form id="changebulkForm" action="<?php echo site_url("admin/synced_logs/multi-action") ?>" method="post">
+<tbody>
+<?php if( !$logs ): ?>
+<tr>
+  <td colspan="7"><center>No logs found</center></td>
+</tr>
+                         <?php endif; ?>
+<?php foreach($logs as $log): ?>
+<tr>
+ <td><input type="checkbox" class="selectOrder" name="log[<?php echo $log["id"] ?>]" value="1"></td>
+ 
+  <td><?php echo GET_API_NAME_BY_ID($log["api_id"]); ?></td>
+
+<td><?php echo GET_SERVICE_NAME_BY_ID($log["service_id"]); ?></td>
+<td><?php echo $log["description"] ?></td>
+<td><?php echo $log["action"] ?></td>
+
+
+<td><?php echo str_replace(["am","pm"],["AM","PM"],date("j F Y, g:i a",strtotime($log["date"]))); ?></td>
+
+  <td> <a href="<?php echo site_url("admin/synced_logs/delete/".$log["id"]) ?>" style="font-size:12px">Delete</a> </td>
+                          </tr>
+                        <?php endforeach; ?>
+                       </tbody>
+                       <input type="hidden" name="bulkStatus" id="bulkStatus" value="0">
+                     </form>
+                  </table>
+               </div>
+            </div>
+         </div>
+         <?php if( $paginationArr["count"] > 1 ): ?>
+           <div class="row">
+              <div class="col-sm-8">
+                 <nav>
+                    <ul class="pagination">
+                      <?php if( $paginationArr["current"] != 1 ): ?>
+                       <li class="prev"><a href="<?php echo site_url("admin/synced_logs/1/".$search_link) ?>">&laquo;</a></li>
+                       <li class="prev"><a href="<?php echo site_url("admin/synced_logs/".$paginationArr["previous"]."/".$search_link) ?>">&lsaquo;</a></li>
+                       <?php
 endif;
+for ($page=1; $page<=$pageCount; $page++):
+  if( $page >= ($paginationArr['current']-9) and $page <= ($paginationArr['current']+9) ):
+                       ?>
+                       <li class="<?php if( $page == $paginationArr["current"] ): echo "active"; endif; ?> "><a href="<?php echo site_url("admin/synced_logs/".$page."/".$status.$search_link) ?>"><?=$page?></a></li>
+                       <?php endif; endfor;
+  if( $paginationArr["current"] != $paginationArr["count"] ):
+                       ?>
+                       <li class="next"><a href="<?php echo site_url("admin/synced_logs/".$paginationArr["next"]."/".$search_link) ?>" data-page="1">&rsaquo;</a></li>
+                       <li class="next"><a href="<?php echo site_url("admin/synced_logs/".$paginationArr["count"]."/".$search_link) ?>" data-page="1">&raquo;</a></li>
+                       <?php endif; ?>
+                    </ul>
+                 </nav>
+              </div>
+           </div>
+         <?php endif; ?>
+      </div>
+   </div>
+</div>
 
-if( $_GET["search_type"] == "username" && $_GET["search"] ):
-  $search_where = $_GET["search_type"];
-  $search_word  = urldecode($_GET["search"]);
-  $clients      = $conn->prepare("SELECT client_id FROM clients WHERE username LIKE '%".$search_word."%' ");
-  $clients     -> execute(array());
-  $clients      = $clients->fetchAll(PDO::FETCH_ASSOC);
-  $id=  "("; foreach ($clients as $client) { $id.=$client["client_id"].","; } if( substr($id,-1) == "," ):  $id = substr($id,0,-1); endif; $id.=")";
-  $search       = " client_report.client_id IN ".$id;
-  $count        = $conn->prepare("SELECT * FROM client_report INNER JOIN clients ON clients.client_id=client_report.client_id WHERE {$search} ");
-  $count        -> execute(array());
-  $count        = $count->rowCount();
-  $search       = "WHERE {$search} ";
-  $search_link  = "?search=".$search_word."&search_type=".$search_where;
-elseif( $_GET["search_type"] == "action" && $_GET["search"] ):
-  $search_where = $_GET["search_type"];
-  
-  $search_word  = urldecode($_GET["search"]);
-  $count        = $conn->prepare("SELECT * FROM sync_logs WHERE sync_logs.action LIKE '%".$search_word."%' ");
-  $count        -> execute(array());
-  $count        = $count->rowCount();
-  $search       = "WHERE client_report.action LIKE '%".$search_word."%' ";
-  $search_link  = "?search=".$search_word."&search_type=".$search_where;
-else:
-  $count          = $conn->prepare("SELECT * FROM sync_logs  ");
-  $count        ->execute(array());
-  $count          = $count->rowCount();
-  $search         = "";
-endif;
-
-  $to             = 50;
-  $pageCount      = ceil($count/$to); if( $page > $pageCount ): $page = 1; endif;
-  $where          = ($page*$to)-$to;
-  $paginationArr  = ["count"=>$pageCount,"current"=>$page,"next"=>$page+1,"previous"=>$page-1];
-  $logs = $conn->prepare("SELECT * FROM sync_logs  $search ORDER BY sync_logs.id DESC LIMIT $where,$to ");
-  $logs->execute(array());
-  $logs = $logs->fetchAll(PDO::FETCH_ASSOC);
-if( route(2) == "sync" ): 
-
-$link = $panel["panel_domain"];
-//sync cron
-$url = "https://$link/crons/sync.php";
- $order    = $smmapi->action(array('action' =>"0"), $url);
-
-
-  elseif( route(2) == "delete" ):
-    $id     = route(3);
-    $delete = $conn->prepare("DELETE FROM sync_logs WHERE id=:id ");
-    $delete->execute(array("id"=>$id));
-    header("Location:".site_url("admin/synced_logs"));
-  elseif( route(2) == "multi-action" ):
-    $logs     = $_POST["log"];
-    $action   = $_POST["bulkStatus"];
-    foreach ($logs as $id => $value):
-      $delete = $conn->prepare("DELETE FROM sync_logs WHERE id=:id ");
-      $delete->execute(array("id"=>$id));
-    endforeach;
-    header("Location:".site_url("admin/synced_logs"));
-  endif;
-
-require admin_view('synced_logs');
+<div class="modal modal-center fade" id="confirmChange" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" data-backdrop="static">
+   <div class="modal-dialog modal-dialog-center" role="document">
+      <div class="modal-content">
+         <div class="modal-body text-center">
+            <h4>Are you sure you want to take action?</h4>
+            <div align="center">
+               <a class="btn btn-primary" href="" id="confirmYes">Yes</a>
+               <button type="button" class="btn btn-default" data-dismiss="modal">No</button>
+            </div>
+         </div>
+      </div>
+   </div>
+</div>
+<?php include 'footer.php'; ?>

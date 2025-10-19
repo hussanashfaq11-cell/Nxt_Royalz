@@ -1,137 +1,73 @@
-<?php
-if(!defined('BASEPATH')) {
-   die('Direct access to the script is not allowed');
-}
+<?php include 'header.php'; ?>
 
- if( $admin["access"]["broadcast"] != 1  ):
-    header("Location:".site_url("admin"));
-    exit();
-  endif;
 
-  if( !route(2) ):
-    $page   = 1;
-  elseif( is_numeric(route(2)) ):
-    $page   = route(2);
-  elseif( !is_numeric(route(2)) ):
-    $action = route(2);
-  endif;
+<div class="container-fluid">
+  <div class="row">    
+   <div class=" col-md-12">
+   <ul class="nav nav-tabs">
+   
+          <a href="<?php echo site_url("admin/broadcasts/create") ?>" <button type="button" class="btn btn-default" data-toggle="modal" data-target="" data-action="">Create Notifications </button> </a>
+   
+    
+	
+	  
+   </ul>
+<br>
+   <div class="row row-xs">
 
-  if( empty($action) ):
+            <div class="col">
+                <div class="card dwd-100">
+                    <div class="card-body pd-20 table-responsive dof-inherit">
+                        <div class="container-fluid pd-t-20 pd-b-20">
+                            
+                                    
+   
+   <table class="table order-table">
+      <thead>
+         <tr>
+            <th width="5%">ID</th>
+            <th width="20%">Title</th>
+            <th width="10%">Type</th>
+            <th width="30%">Action Link</th>
+            <th width="10%">All Users</th>
+            <th width="10%">Date Expiry</th>
+            <th width="5%">Status</th>
+            <th width="10%">Action</th>
+         </tr>
+      </thead>
       
-    $notifications        = $conn->prepare("SELECT * FROM notifications_popup ");
-    $notifications        -> execute(array());
-    $notifications        = $notifications->fetchAll(PDO::FETCH_ASSOC);
-    
-    $kupon_kullananlar        = $conn->prepare("SELECT * FROM kupon_kullananlar ");
-    $kupon_kullananlar        -> execute(array());
-    $kupon_kullananlar        = $kupon_kullananlar->fetchAll(PDO::FETCH_ASSOC);
-    
-    require admin_view('broadcasts');
-	
-	
-	
-	
-    elseif( $action == "edit" ):
-	
-      if( $_POST ):
-            $nId = $_POST['id'];
-            $title = $_POST['title'];
-
-$type = $_POST["broadcast_type"];
-              $description = str_replace("\n", "<br />", $_POST['description']);
-              $action_link = $_POST['action_link'];
-              $action_text = $_POST['action_text'];
-              $expiry_date = $_POST['expiry_date'];
-              $isAllUser = $_POST['isAllUser'];
-              $status = $_POST['status'];
-              
-              if(date("Y-m-d H:i:s") < $expiry_date){
-                    $insert = $conn->prepare("UPDATE notifications_popup SET title=:title,type=:type,description=:description,action_link=:action_link,action_text=:action_text,expiry_date=:expiry_date,isAllUser=:isAllUser,status=:status  WHERE id=:id ");
-               $insert = $insert-> execute(array("id"=>$nId,"title"=>$title,"type"=>$type,"description"=>$description,"action_link"=>$action_link,"action_text"=>$action_text,"expiry_date"=>$expiry_date,"isAllUser"=>$isAllUser,"status"=>$status));
-                if( $insert ):
-          
-                  header("Location:".site_url("admin/broadcasts"));
-                else:
-          
-                  header("Location:".site_url("admin/broadcasts"));
-                endif;
-              }else {
-                  echo '<script>alert("Error! Expiry Date should be more than current date");</script>';
-                  
-              }
-              
-
-		 
-			
-	else:
-	    $link = $_SERVER['REQUEST_URI'];
-        $link_array = explode('/',$link);
-        $nId = end($link_array);
-        $pages        = $conn->prepare("SELECT * FROM pages ");
-        $pages        -> execute(array());
-        $pages        = $pages->fetchAll(PDO::FETCH_ASSOC);
+        <tbody>
+          <?php foreach($notifications as $notification ): ?>
+              <tr>
+                
+                 <td><?php echo $notification["id"] ?></td>
+                 <td><?php echo $notification["title"] ?></td>
+                 <td><span class="badge badge-<?php echo $notification["type"];?>"><?php echo ucfirst($notification["type"]);?></span></td>
+                 <td><?php echo $notification["action_link"]?></td>
+                 <td><?php if($notification["isAllUser"]){ echo 'No';}else{ echo 'Yes';}   ?></td>
+                 <td><?php echo $notification["expiry_date"] ?></td>
+                 <td><?php if($notification["status"] == 1){ echo 'Active';}else{ echo 'Inactive';}   ?></td>
+                 <td>
+                   <form id="changebulkForm" action="<?php echo site_url("admin/broadcasts/delete") ?>" method="post" onsubmit="return confirm('Do you want to delete it?');">
+					   <div class="btn-group">
+                     <input type="hidden" name="notification_id" value="<?php echo $notification["id"] ?>">
+					   
+					   <button type="submit" class="btn btn-danger btn-xs">Delete</button>
+                     
+                     <a href="<?php echo site_url("admin/broadcasts/edit/".$notification["id"]) ?>" class="btn btn-info btn-xs">Edit</a>
+					    </div>
+                    </form>
+                 </td>
+              </tr>
+            <?php endforeach; ?>
+        </tbody>
         
-        $notifications        = $conn->prepare("SELECT * FROM notifications_popup WHERE id= $nId LIMIT 1");
-        $notifications        -> execute(array());
-        $notifData        = $notifications->fetchAll(PDO::FETCH_ASSOC)[0];   
-        
-	    require admin_view('editbroadcasts');
-	  
-	endif;
-	
-	elseif( $action == "delete" ):
-	
-	if( $_POST ):
-	 $notification_id =  $_POST['notification_id'];
+   </table>
+  
+</div>
+</div>
+</div>
 
-$delete = $conn->prepare("DELETE FROM notifications_popup WHERE id=:id");
-$delete->execute(array("id"=>$notification_id));
+<?php
 
-if( $delete ):
-			
-header("Location: ".site_url("admin/broadcasts"));
-else:
-header("Location: ".site_url("admin/broadcasts"));
-endif;
-			
-			
-	  
-	endif;
-	
-	elseif( $action == "create" ):
-	    
-	    $pages        = $conn->prepare("SELECT * FROM pages ");
-        $pages        -> execute(array());
-        $pages        = $pages->fetchAll(PDO::FETCH_ASSOC);
-	  require admin_view('createbroadcasts');
-
-	
-  elseif( $action == "new" ):
-            
-          $title = @$_POST['title'];
-          $type = @$_POST["broadcast_type"];
-          $description = @$_POST['description'];
-          $action_link = @$_POST['action_link'];
-          $action_text  = @$_POST['action_text'];
-          $expiry_date = @$_POST['expiry_date'];
-          $status = @$_POST["status"];
-          $isAllUser = @$_POST['isAllUser'];
-          
-if(date("Y-m-d H:i:s") < $expiry_date){
-$insert = $conn->prepare("INSERT INTO notifications_popup SET title=:title,type=:type,description=:desc,action_link=:link,action_text=:text,expiry_date=:expiry,status=:status,isAllUser=:isAllUser");
-$insert->execute(
-array("title"=>$title,
-"type"=>$type,
-"desc"=>$description,
-"link"=>$action_link,
-"text"=>$action_text,
-"expiry"=>$expiry_date,
-"status"=>$status,
-"isAllUser"=>$isAllUser));
-
-header("Location:../../admin/broadcasts");
-}else {
-echo '<script>alert("Error! Expiry Date should be more than current date");</script>';
-}
-  endif;
-?>
+include 'footer.php'; ?>

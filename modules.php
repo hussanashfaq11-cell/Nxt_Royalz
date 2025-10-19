@@ -1,359 +1,187 @@
 <?php
- if(!defined('BASEPATH')) {
-   die('Direct access to the script is not allowed');
-}
+if (route(3) == "ip") {
+    $ipType = ($_POST['ip_type'] == 1 || $_POST['ip_type'] == 2) ? $_POST['ip_type'] : null;
+    $ip = filter_var($_POST['ip'], FILTER_SANITIZE_STRING);
+    if (!empty($ip) && $ip != obfuscate_provider_key($admin["ip"])) {
+        $update = $conn->prepare("UPDATE admins SET ip_type = :ipType, ip = :ip");
+        $update->execute(array("ipType" => $ipType, "ip" => $ip));
+    } else {echo "Please provide a valid IPv6 address.";}}
+$adminQuery = $conn->prepare("SELECT * FROM admins");
+$adminQuery->execute();
+$admin = $adminQuery->fetch(PDO::FETCH_ASSOC);
+$inputValue = (isset($_POST['ip']) && route(3) == "ip") ? htmlspecialchars($_POST['ip']) : obfuscate_provider_key($admin["ip"]);
+?>
+<div class="col-md-8">
+  <div class="panel panel-default">
+    <div class="panel-body">
+      <form id="ipForm" action="admin/settings/modules/ip" method="post" enctype="multipart/form-data">
+        <div class="form-group">
+          <label for="" class="control-label">IP Security</label>
+          <select class="form-control" name="ip_type">
+            <option value="1" <?= $admin["ip_type"] == 1 ? "selected" : null; ?>>Disabled</option>
+            <option value="2" <?= $admin["ip_type"] == 2 ? "selected" : null; ?>>Enabled</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="" class="control-label">Your IPv6 Address</label>
+          <input type="text" class="form-control" name="ip" value="<?= $inputValue ?>">
+        </div>
+        <center><button type="submit" class="btn btn-primary w-100">Save Changes</button></center>
+      </form>
+    </div>
+  </div>
+</div>
+<script>document.getElementById("ipForm").addEventListener("submit",function(e){var a;'<?= htmlspecialchars(obfuscate_provider_key($admin["ip"])) ?>'===document.getElementsByName("ip")[0].value.trim()&&(alert("Please provide a valid IPv6 address."),e.preventDefault())});</script>
 
-if ($user["access"]["modules"] != 1):
-    header("Location:" . site_url("admin"));
-    exit();
-endif;
-if (!route(2)):
-    $route[2] = "online";
-endif;
-if ($_SESSION["client"]["data"]):
-    $data = $_SESSION["client"]["data"];
-    foreach ($data as $key => $value) {
-        $$key = $value;
-    }
-    unset($_SESSION["client"]);
-endif;
-if (route(3) && is_numeric(route(3))):
-    $page = route(3);
-else:
-    $page = 1;
-endif;
-function searchStatu($statu) {
-    switch ($statu) {
-        case 'completed':
-            $statu = 3;
-        break;
-        case 'pending':
-            $statu = 1;
-        break;
-        case 'canceled':
-            $statu = 2;
-        break;
-    }
-    return $statu;
-}
-function paymentStatu($statu) {
-    switch ($statu) {
-        case 3:
-            $statu = "Approved";
-        break;
-        case 1:
-            $statu = "Pending";
-        break;
-        case 2:
-            $statu = "Canceled";
-        break;
-    }
-    return $statu;
-}
-    if( $_GET["search_type"] == "username" && $_GET["search"] ):
-      $search_where = $_GET["search_type"];
-      $search_word  = urldecode($_GET["search"]);
-      $clients      = $conn->prepare("SELECT client_id FROM clients WHERE username LIKE '%".$search_word."%' ");
-      $clients     -> execute(array());
-      $clients      = $clients->fetchAll(PDO::FETCH_ASSOC);
-      $id=  "("; foreach ($clients as $client) { $id.=$client["client_id"].","; } if( substr($id,-1) == "," ):  $id = substr($id,0,-1); endif; $id.=")";
-      $search       = " orders.client_id IN ".$id;
-      $count        = $conn->prepare("SELECT * FROM orders INNER JOIN clients ON clients.client_id = orders.client_id WHERE {$search} && orders.dripfeed='1' && orders.subscriptions_type='1' ");
-      $count        -> execute(array());
-      $count        = $count->rowCount();
-      $search       = "WHERE {$search} && orders.dripfeed='1' && orders.subscriptions_type='1' ";
-      $search_link  = "?search=".$search_word."&search_type=".$search_where;
-    elseif( $_GET["search_type"] == "payment_id" && $_GET["search"] ):
-      $search_where = $_GET["search_type"];
-      $search_word  = urldecode($_GET["search"]);
-      $count        = $conn->prepare("SELECT * FROM payments INNER JOIN clients ON clients.client_id = payments.client_id WHERE payment_id LIKE '%".$search_word."%' ");
-      $count        -> execute(array());
-      $count        = $count->rowCount();
-      $search       = "WHERE payment.payment_id LIKE '%".$search_word."%'";
-      $search_link  = "?search=".$search_word."&search_type=".$search_where;
-    elseif( $_GET["search_type"] == "payment_amount" && $_GET["search"] ):
-      $search_where = $_GET["search_type"];
-      $search_word  = urldecode($_GET["search"]);
-      $count        = $conn->prepare("SELECT * FROM payments INNER JOIN clients ON clients.client_id = payments.client_id WHERE payments.payment_amount LIKE '%".$search_word."%' && orders.dripfeed='1' && orders.subscriptions_type='1' ");
-      $count        -> execute(array());
-      $count        = $count->rowCount();
-      $search       = "WHERE orders.order_url LIKE '%".$search_word."%'  && orders.dripfeed='1' && orders.subscriptions_type='1' ";
-      $search_link  = "?search=".$search_word."&search_type=".$search_where;
-endif;
-if ($_POST):
-    if (route(2) == "edit-bank"):
-        $id = route(3);
-        $payment = $conn->prepare("SELECT * FROM payments INNER JOIN clients ON clients.client_id=payments.client_id WHERE payment_id=:id ");
-        $payment->execute(array("id" => $id));
-        $payment = $payment->fetch(PDO::FETCH_ASSOC);
-        foreach ($_POST as $key => $value) {
-            $$key = $value;
-        }
-        if (empty($bank)):
-            $error = 1;
-            $errorText = "Bank can not be empty";
-            $icon = "error";
-        elseif (empty($status) && $payment["payment_delivery"] == 1):
-            $error = 1;
-            $errorText = "Payment status can not be empty";
-            $icon = "error";
-        else:
-           
-            if ($status == "3" && $payment["payment_delivery"] == 1):
-                $conn->beginTransaction();
-                $update = $conn->prepare("UPDATE payments SET payment_status=:status, payment_bank=:bank, payment_delivery=:delivery, payment_note=:note, payment_update_date=:date, client_balance=:balance WHERE payment_id=:id ");
-                $update = $update->execute(array("id" => $id, "status" => 3, "delivery" => 2, "bank" => $bank, "note" => $note, "date" => date("Y-m-d H:i:s"), "balance" => $payment["balance"]));
-                $update2 = $conn->prepare("UPDATE clients SET balance=:balance WHERE client_id=:id ");
-                $update2 = $update2->execute(array("id" => $payment["client_id"], "balance" => $payment["payment_amount"] + $payment["balance"]));
-                if ($update2 && $update):
-                    $conn->commit();
-                    $error = 1;
-                    $errorText = "Successful";
-                    $icon = "success";
-                else:
-                    $conn->rollBack();
-                    $error = 1;
-                    $errorText = "Error";
-                    $icon = "error";
-                endif;
-            else:
-                if (!$status):
-                    $status = $payment["payment_status"];
-                endif;
-                $update = $conn->prepare("UPDATE payments SET payment_status=:status, payment_bank=:bank, payment_note=:note, payment_update_date=:date WHERE payment_id=:id ");
-                $update = $update->execute(array("id" => $id, "status" => $status, "bank" => $bank, "note" => $note, "date" => date("Y-m-d H:i:s")));
-                if ($update):
-                    $error = 1;
-                    $errorText = "Successful";
-                    $icon = "success";
-                else:
-                    $error = 1;
-                    $errorText = "Error";
-                    $icon = "error";
-                endif;
-            endif;
-        endif;
-        echo json_encode(["t" => "error", "m" => $errorText, "s" => $icon, "r" => $referrer]);
-    elseif (route(2) == "new-bank"):
-        foreach ($_POST as $key => $value) {
-            $$key = $value;
-        }
-        if (empty($bank)):
-            $error = 1;
-            $errorText = "Bank can not be empty";
-            $icon = "error";
-        elseif (empty($amount)):
-            $error = 1;
-            $errorText = "Amount can not be empty";
-            $icon = "error";
-        elseif (!countRow(["table" => "clients", "where" => ["username" => $username]])):
-            $error = 1;
-            $errorText = "User not found";
-            $icon = "error";
-        else:
-            $user = $conn->prepare("SELECT * FROM clients WHERE username=:username ");
-            $user->execute(array("username" => $username));
-            $user = $user->fetch(PDO::FETCH_ASSOC);
-            $conn->beginTransaction();
-            $insert = $conn->prepare("INSERT INTO payments SET payment_status=:status, payment_mode=:mode, payment_amount=:amount, payment_bank=:bank, payment_method=:method, payment_delivery=:delivery, payment_note=:note, payment_update_date=:date, payment_create_date=:date2, client_id=:client_id, client_balance=:balance ");
-            $insert = $insert->execute(array("status" => 3, "delivery" => 2, "bank" => $bank, "mode" => "Manuel", "amount" => $amount, "method" => 6, "note" => $note, "date" => date("Y-m-d H:i:s"), "date2" => date("Y-m-d H:i:s"), "balance" => $user["balance"], "client_id" => $user["client_id"]));
-            $update2 = $conn->prepare("UPDATE clients SET balance=:balance WHERE client_id=:id ");
-            $update2 = $update2->execute(array("id" => $user["client_id"], "balance" => $amount + $user["balance"]));
-            if ($update2 && $insert):
-                $conn->commit();
-                $error = 1;
-                $errorText = "Successful";
-                $icon = "success";
-                $referrer = site_url("admin/payments/bank");
-            else:
-                $conn->rollBack();
-                $error = 1;
-                $errorText = "Error";
-                $icon = "error";
-            endif;
-        endif;
-        echo json_encode(["t" => "error", "m" => $errorText, "s" => $icon, "r" => $referrer]);
-    elseif (route(2) == "new-online"):
-        foreach ($_POST as $key => $value) {
-            $$key = $value;
-        }
-        if (empty($method)):
-            $error = 1;
-            $errorText = "Payment method can not be empty";
-            $icon = "error";
-        elseif (empty($amount)):
-            $error = 1;
-            $errorText = "Amount can not be empty";
-            $icon = "error";
-        elseif (!countRow(["table" => "clients", "where" => ["username" => $username]])):
-            $error = 1;
-            $errorText = "User not found";
-            $icon = "error";
-        else:
-            $user = $conn->prepare("SELECT * FROM clients WHERE username=:username ");
-            $user->execute(array("username" => $username));
-            $user = $user->fetch(PDO::FETCH_ASSOC);
-            $conn->beginTransaction();
-            $insert_array =array(
-                    "status" => 3, 
-                    "delivery" => 2, 
-                    "mode" => "Manuel", 
-                    "amount" => $amount, 
-                    "method" => $method, 
-                    "payment_privatecode"=>0,
-                    "note" => $note, 
-                    "date" => date("Y-m-d H:i:s"), 
-                    "date2" => date("Y-m-d H:i:s"), 
-                    "balance" => $user["balance"], 
-                    "client_id" => $user["client_id"],
-                    "payment_ip" => $_SERVER['REMOTE_ADDR'],
-                    "payment_extra" => " sad",
-                    "payment_bank" => "0"
-                    );
-                    //print_r($insert_array); die;
-                
-            $insert = $conn->prepare("INSERT INTO payments SET payment_status=:status, payment_mode=:mode, payment_amount=:amount, payment_method=:method, payment_delivery=:delivery, payment_privatecode=:payment_privatecode,payment_note=:note, payment_update_date=:date, payment_create_date=:date2, client_id=:client_id, client_balance=:balance,payment_ip=:payment_ip,payment_extra=:payment_extra,payment_bank=:payment_bank ");
-            $insert = $insert->execute($insert_array);
-          
-            
-            $update2 = $conn->prepare("UPDATE clients SET balance=:balance WHERE client_id=:id ");
-            $update2 = $update2->execute(array("id" => $user["client_id"], "balance" => $amount + $user["balance"]));
-            if ($update2 && $insert):
-                
-                $conn->commit();
-                $error = 1;
-                $errorText = "Successful";
-                $icon = "success";
-                $referrer = site_url("admin/payments/online");
-            else:
-                
-                $conn->rollBack();
-                $error = 1;
-                $errorText = "Error";
-                $icon = "error";
-            endif;
-        endif;
-        echo json_encode(["t" => "error", "m" => $errorText, "s" => $icon, "r" => $referrer]);
-    elseif (route(2) == "edit-online"):
-        $id = route(3);
-        $payment = $conn->prepare("SELECT * FROM payments INNER JOIN clients ON clients.client_id=payments.client_id WHERE payment_id=:id ");
-        $payment->execute(array("id" => $id));
-        $payment = $payment->fetch(PDO::FETCH_ASSOC);
-        foreach ($_POST as $key => $value) {
-            $$key = $value;
-        }
-        if (empty($method)):
-            $error = 1;
-            $errorText = "Payment method can not be empty";
-            $icon = "error";
-        else:
-            $conn->beginTransaction();
-            $update = $conn->prepare("UPDATE payments SET  payment_method=:method, payment_note=:note, payment_update_date=:date2 WHERE payment_id=:id ");
-            $update = $update->execute(array("method" => $method, "note" => $note, "date2" => date("Y-m-d H:i:s"), "id" => $id));
-            if ($update):
-                $conn->commit();
-                $error = 1;
-                $errorText = "Successful";
-                $icon = "success";
-                $referrer = site_url("admin/payments/online");
-            else:
-                $conn->rollBack();
-                $error = 1;
-                $errorText = "Error";
-                $icon = "error";
-            endif;
-        endif;
-        echo json_encode(["t" => "error", "m" => $errorText, "s" => $icon, "r" => $referrer]);
-    endif;
-endif;
-if (route(2) == "bank"):
-    $statusList = ["all", "pending", "canceled", "completed"];
-    if (route(4) && in_array(route(4), $statusList)):
-        $status = route(4);
-    elseif (!route(4) || !in_array(route(4), $statusList)):
-        $status = "all";
-    endif;
-    if ($_GET["search_type"] == "username" && $_GET["search"]):
-        $search_where = $_GET["search_type"];
-        $search_word = $_GET["search"];
-        $clients = $conn->prepare("SELECT client_id FROM clients WHERE username LIKE '%" . $search_word . "%' ");
-        $clients->execute(array());
-        $clients = $clients->fetchAll(PDO::FETCH_ASSOC);
-        $id = "(";
-        foreach ($clients as $client) {
-            $id.= $client["client_id"] . ",";
-        }
-        if (substr($id, -1) == ","):
-            $id = substr($id, 0, -1);
-        endif;
-        $id.= ")";
-        $search = " payments.client_id IN " . $id;
-        $count = $conn->prepare("SELECT * FROM payments INNER JOIN clients ON clients.client_id = payments.client_id WHERE {$search} && payments.payment_method='6' ");
-        $count->execute(array());
-        $count = $count->rowCount();
-        $search = "WHERE {$search} && payments.payment_method='6' ";
-        $search_link = "?search=" . $search_word . "&search_type=" . $search_where;
-    elseif ($status != "all"):
-        $count = $conn->prepare("SELECT * FROM payments WHERE payment_method=:method && payment_status=:status ");
-        $count->execute(array("method" => 6, "status" => searchStatu($status)));
-        $count = $count->rowCount();
-        $search = "WHERE payments.payment_status='" . searchStatu($status) . "' && payments.payment_method='6' ";
-    elseif ($status == "all"):
-        $count = $conn->prepare("SELECT * FROM payments WHERE payment_method=:method ");
-        $count->execute(array("method" => 6));
-        $count = $count->rowCount();
-        $search = "WHERE payments.payment_method='6' ";
-    endif;
-    $to = 50;
-    $pageCount = ceil($count / $to);
-    if ($page > $pageCount):
-        $page = 1;
-    endif;
-    $where = ($page * $to) - $to;
-    $paginationArr = ["count" => $pageCount, "current" => $page, "next" => $page + 1, "previous" => $page - 1];
-    $payments = $conn->prepare("SELECT * FROM payments INNER JOIN bank_accounts ON bank_accounts.id=payments.payment_bank INNER JOIN clients ON clients.client_id=payments.client_id $search ORDER BY payments.payment_id DESC LIMIT $where,$to ");
-    $payments->execute(array());
-    $payments = $payments->fetchAll(PDO::FETCH_ASSOC);
-    require admin_view('payments_bank');
-elseif (route(2) == "online"):
-    if ($_GET["search_type"] == "username" && $_GET["search"]):
-        $search_where = $_GET["search_type"];
-        $search_word = $_GET["search"];
-        $clients = $conn->prepare("SELECT client_id FROM clients WHERE username LIKE '%" . $search_word . "%' ");
-        $clients->execute(array());
-        $clients = $clients->fetchAll(PDO::FETCH_ASSOC);
-        $id = "(";
-        foreach ($clients as $client) {
-            $id.= $client["client_id"] . ",";
-        }
-        if (substr($id, -1) == ","):
-            $id = substr($id, 0, -1);
-        endif;
-        $id.= ")";
-        $search = " payments.client_id IN " . $id;
-        $count = $conn->prepare("SELECT * FROM payments INNER JOIN clients ON clients.client_id = payments.client_id WHERE {$search} && payments.payment_method!='6' && payments.payment_status='3' ");
-        $count->execute(array());
-        $count = $count->rowCount();
-        $search = "WHERE {$search} && payments.payment_method!='6' && payments.payment_status='3' ";
-        $search_link = "?search=" . $search_word . "&search_type=" . $search_where;
-    else:
+
+
+<div class="col-md-8">
+  <div class="panel panel-default">
+    <div class="panel-body">
+      <form action="" method="post" enctype="multipart/form-data">
+  
+<div class="form-group">
+          <label for="" class="control-label">Affiliate System</label>
+          <select class="form-control" name="affiliates_status">
          
-        $count = $conn->prepare("SELECT * FROM payments WHERE payment_method!=:method && payment_status=:status ");
-        $count->execute(array("method" => 6, "status" => 3));
-        $count = $count->rowCount();
-        $search = "WHERE payments.payment_method!='6' && payments.payment_status='3' ";
-    endif;
-    $to = 50;
-    $pageCount = ceil($count / $to);
-    if ($page > $pageCount):
-        $page = 1;
-    endif;
-    $where = ($page * $to) - $to;
-    $paginationArr = ["count" => $pageCount, "current" => $page, "next" => $page + 1, "previous" => $page - 1];
-    $payments = $conn->prepare("SELECT * FROM payments INNER JOIN payment_methods ON payment_methods.id=payments.payment_method INNER JOIN clients ON clients.client_id=payments.client_id $search ORDER BY payments.payment_id DESC LIMIT $where,$to ");
-    $payments->execute(array());
-    $payments = $payments->fetchAll(PDO::FETCH_ASSOC);
-    require admin_view('modules');
-endif;
+          <option value="1"  <?= $settings["referral_status"] == 1 ? "selected" : null; ?>>Disabled</option>
+          <option value="2" <?= $settings["referral_status"] == 2 ? "selected" : null; ?>>Enabled</option>
+          
+          </select>
+        </div>
+  <div class="form-group">
+          <label for="" class="control-label">Commission rate, %</label>
+          <input type="number" class="form-control" name="commision" value="<?=$settings["referral_commision"]?>">
+        </div>
+        <div class="form-group">  
+          <label for="" class="control-label">Minimum payout</label>
+          <input type="number" class="form-control" name="minimum" value="<?=$settings["referral_payout"]?>">
+        </div>
+        
+<hr>
+<div class="childpanels-settings">
+<div class="form-group">
+          <label for="" class="control-label">Child Panel Selling</label>
+          <select class="form-control" name="selling">
+         
+<option value="1"  <?= $settings[""] == 1 ? "selected" : null; ?>>Disabled</option>
+          <option value="2" <?= $settings["childpanel_selling"] == 2 ? "selected" : null; ?>>Enabled</option>
+          
+          </select>
+        </div>
+        
 
-   
+<div class="form-group">
+<label for="" class="control-label">Child Panel Price</label>
+<input type="text" class="form-control" name="price" value="<?=$settings["childpanel_price"]?>">
+</div> 
+<div style="padding:4px; background-color:lightgrey;border:1px solid #000; border-radius:4px;width:max-content;">
+<small>Base Child Panel Price : ₹ 500</small></div>
+
+</div>
+
+<hr>
+
+
+<div class="form-group">
+          <label for="" class="control-label">Free Balance</label>
+          <select class="form-control" name="freebalance">
+         
+                    <option value="1"  <?= $settings["freebalance"] == 1 ? "selected" : null; ?>>Disabled</option>
+          <option value="2" <?= $settings["freebalance"] == 2 ? "selected" : null; ?>>Enabled</option>
+          
+          </select>
+        </div>
+<div class="form-group">
+          <label for="" class="control-label">Free Amount</label>
+          <input type="text" class="form-control" name="freeamount" value="<?=$settings["freeamount"]?>">
+        </div> 
+<hr>
+<div class="form-group">
+          <label for="" class="control-label">Video Promotion</label>
+          <select class="form-control" name="promotion">
+         
+                    <option value="1"  <?= $settings["promotion"] == 1 ? "selected" : null; ?>>Disabled</option>
+          <option value="2" <?= $settings["promotion"] == 2 ? "selected" : null; ?>>Enabled</option>
+          
+          </select>
+        </div>
+
+<div class="form-group">
+          <label for="" class="control-label">Updates Logs</label>
+          <select class="form-control" name="updates_show">
+         
+                    <option value="1"  <?= $general["updates_show"] == 1 ? "selected" : null; ?>>Disabled</option>
+          <option value="2" <?= $general["updates_show"] == 2 ? "selected" : null; ?>>Enabled</option>
+          
+          </select>
+        </div>
+
+
+<div class="form-group">
+          <label for="" class="control-label">Mass Order</label>
+          <select class="form-control" name="massorder">
+         
+                    <option value="1"  <?= $general["massorder"] == 1 ? "selected" : null; ?>>Disabled</option>
+          <option value="2" <?= $general["massorder"] == 2 ? "selected" : null; ?>>Enabled</option>
+          
+          </select>
+        </div>
+
+
+<hr>
+        <center><button type="submit" class="btn btn-primary w-100">Save Changes</button></center>
+      </form>
+      
+    </div>
+  </div>
+
+<?php  
+
+$google_login = json_decode($settings["google_login"],true);
+
+?>
+
+<?php if($google_login["purchased"] != "1"){ ?>
+<div data-addon="google_login" class="product-card">
+  <div class="product-icon"><img src="https://i.postimg.cc/WbnmCB4D/google.png" alt="Product Icon"></div>
+  <div class="product-details">
+    <h2 class="product-name">Google Login Addon</h2>
+    <p class="product-price">₹200.00</p>
+  </div>
+  <button class="btn btn-primary">Buy Now</button>
+</div>
+
+<?php } else { ?>
+ <div class="settings-emails__block-body">
+<table>
+<thead>
+<tr>
+<th class="settings-emails__th-name"></th>
+<th class="settings-emails__th-actions"></th>
+</tr>
+</thead>
+<tbody>
+<tr class="settings-emails__row">
+                    <td>
+                        <div class="settings-emails__row-name">Google Login</div>
+<div class="settings-emails__row-description">Users will be able to login with their Google Account to the panel.</div>
+</td>
+
+<td class="settings-emails__td-actions">  
+    <label class="switch">
+      <input  data-addon="google_login"  type="checkbox" class="switch-input addon"  <?php echo $google_login["status"] ? "checked" : "";?>>
+      <span class="switch-label" data-on="On" data-off="Off"></span>
+      <span class="switch-handle"></span>
+    </label>
+
+ </td>
+</tr>
+</tbody>
+</table>
+
+<?php } ?>
+
+
+
+</div>

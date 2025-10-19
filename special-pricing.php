@@ -1,90 +1,44 @@
-<?php
-if(!defined('BASEPATH')) {
-   die('Direct access to the script is not allowed');
-}
-if( $admin["access"]["admin_access"] != 1  ){
-    header("Location:".site_url("admin"));
-    exit();
-}
-if(route(1) == "special-pricing"){
-$action = route(2);
-if($action == "data"){
-$special_prices = $conn->prepare("SELECT * FROM clients_price");
-$special_prices->execute();
-$special_prices = $special_prices->fetchAll(PDO::FETCH_ASSOC);
-$special_prices = json_encode($special_prices,true);
-echo $special_prices;
-exit();
-}
-if($action == "delete"){
-$special_price_id = route(3);
-$special_prices = $conn->prepare("DELETE FROM clients_price WHERE id=:id");
-$special_prices->execute(array(
-   "id" => $special_price_id
-));
-success_response_exit("Special Price deleted successfully.");
-}
-if($action == "delete-all"){
-$special_prices = $conn->prepare("DELETE FROM clients_price");
-$special_prices->execute();
-success_response_exit("Deleted all special prices.");
-}
+<?php include("new-header.php"); ?>
+
+<div class="container-fluid margin-top-container">
+    <div class="row">
+        <div class="col">
+            <button class="btn btn-labeled btn-primary" type="button" data-bs-toggle="modal"
+                data-form="create_special_price" data-bs-target="#staticBackdropModal"><span class="btn-label"><i
+                        class="bi bi-plus-lg"></i></span>Create Special Price</button>
+
+            <button class="btn btn-labeled btn-danger float-end" type="button" data-ajax="true"
+                data-action-ajax="admin/special-pricing/delete-all"><span class="btn-label"><i
+                        class="bi bi-trash3"></i></span>Delete All</button>
+
+            <div data-pattern="priority-columns" class="mt-2">
+                <table cellspacing="0"
+                    class="table table-small-font table-tighten table-bordered  table-striped table-hover loading">
+                    <thead class="table-secondary">
+                        <tr>
+                            <th>User</th>
+                            <th>Service</th>
+                            <th>Cost Price</th>
+                            <th>Selling Price</th>
+                            <th>Special Price</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td colspan="6">
+                                <center><svg class="spinner medium" viewBox="0 0 48 48">
+                                        <circle class="path" cx="24" cy="24" r="20" fill="none" stroke-width="5">
+                                        </circle>
+                                    </svg> Loading...</center>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
 
 
-if($_POST){
+            </div>
+        </div>
+    </div>
 
-if($action == "create-new"){
-
-foreach($_POST as $key => $value){
-    $$key = htmlspecialchars($value);
-}
-if(empty($special_price_user) || !is_numeric($special_price_user)){
-error_exit("Please select a user.");
-}
-if(empty($special_price_service) || !is_numeric($special_price_service)){
-error_exit("Please select a service.");
-}
-if(empty($special_price_for_service)){
-error_exit("Please set a special price.");
-}
-
-$insert = $conn->prepare("INSERT INTO clients_price SET client_id=:client_id, service_price=:service_price, service_id=:service_id");
-$insert->execute(array(
-    "service_id"=>$special_price_service,
-    "client_id"=>$special_price_user,
-    "service_price"=>$special_price_for_service));
-
-success_response_exit("Special price created successfully.");
-} // CREATE NEW SPECIAL PRICE
-
-
-if($action == "edit"){
-$special_price_id = route(3);
-foreach($_POST as $key => $value){
-    $$key = $value;
-}
-if(empty($special_price_user) || !is_numeric($special_price_user)){
-error_exit("Please select a user.");
-}
-if(empty($special_price_service) || !is_numeric($special_price_service)){
-error_exit("Please select a service.");
-}
-if(empty($special_price_for_service)){
-error_exit("Please set a special price.");
-}
-$insert = $conn->prepare("UPDATE clients_price SET client_id=:client_id, service_price=:service_price, service_id=:service_id WHERE id=:id");
-$insert->execute(array(
-    "id" => $special_price_id,
-    "service_id"=>$special_price_service,
-    "client_id"=>$special_price_user,
-    "service_price"=>$special_price_for_service));
-success_response_exit("Special price updated successfully.");
-}
-} // DATA POSTED
-
-require admin_view("special-pricing");
-
-}
-
-
-?>
+    <?php include("new-footer.php"); ?>

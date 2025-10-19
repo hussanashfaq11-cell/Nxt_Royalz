@@ -1,1531 +1,399 @@
+<?php include 'header.php';?>
+<div class="container-fluid">
+    <ul class="nav nav-tabs nav-tabs__service">
+        <br>
+        <li class="p-b"><button class="btn btn-default" data-toggle="modal" data-target="#modalDiv" data-action="new_service">New Service</button></li>
+        <li class="p-b"><button class="btn btn-default m-l" data-toggle="modal" data-target="#modalDiv" data-action="new_subscriptions">New Subscription</button></li>
+        <li class="p-b"><button class="btn btn-default m-l" data-toggle="modal" data-target="#modalDiv" data-action="new_category">New Category</button></li>
+
+<li class="pull-right">
+<a class="btn btn-primary" href="<?= site_url('admin/api-services') ?>"><i class="fas fa-plus-circle"></i> Import Services</a>
+        </li>
+
+
+
+
+<li class="pull-right">
+<div class="form-inline">
+<label for="service-search-input" class="service-search__icon"></label>
+<input class="form-control" placeholder="Search" id="priceService" type="text" value="">
+</div>
+</li>
+    </ul>
+    <ul></ul>
+    <div class="services-table">
+        <div class="sticker-head">
+            <table class="service-block__header" id="sticker">
+                <thead>
+<th class="checkAll-th service-block__checker null">
+    <div class="checkAll-holder">
+        <input type="checkbox" id="checkAll">
+        <input type="hidden" id="checkAllText" value="order">
+    </div>
+    <div class="action-block">
+        <ul class="action-list">
+            <li><span class="countOrders"></span> Services Selected</li>
+            <li>
+                <div class="dropdown">
+<button type="button" class="btn btn-default btn-xs dropdown-toggle btn-xs-caret" data-toggle="dropdown">batch operations<span class="caret"></span></button>
+<ul class="dropdown-menu">
+    <li>
+        <a class="bulkorder" data-type="active">Enable Selected Services</a>
+        <a class="bulkorder" data-type="deactive">Disable Selected Services</a>
+        <a class="bulkorder" data-type="secret">Make Selected Serivces Secret</a>
+        <a class="bulkorder" data-type="desecret">Remove Selected from Secret Serivces</a>
+        <a class="bulkorder" data-type="del_price">Delete Selected Services Custom Pricing</a>
+        <a class="bulkorder" data-type="del_service">Delete Selected Services</a>
+        <a class="bulkorder" data-type="refill-active">Refill Enable Selected Services</a>
+        <a class="bulkorder" data-type="refill-inactive">Refill Disable Selected Services</a>
+        <a class="bulkorder" data-type="cancel-active">Cancel Enable Selected Services</a>
+        <a class="bulkorder" data-type="cancel-inactive">Cancel Disable Selected Services</a>
+    </li>
+</ul>
+                </div>
+            </li>
+        </ul>
+    </div>
+</th>
+<th class="service-block__id">ID</th>
+<th class="service-block__service">Service</th>
+
+<th>Service Type</th>
+<th class="service-block__minorder">Refill</th>
+<th class="service-block__minorder">Cancel</th>
+<th class="service-block__provider">Provider</th>
+<th class="service-block__rate">Price</th>
+<th class="service-block__minorder">Min</th>
+<th class="service-block__minorder">Max</th>
+<th class="service-block__visibility">Status</th>
+<th class="service-block__action text-right"><span id="allServices" class="service-block__hide-all fa fa-compress"></span></th>
+                </tr>
+            </thead>
+        </table>
+    </div>
+
+    <div class="service-block__body">
+        <div class="service-block__body-scroll">
+            <div style="width: 100%; height: 0px;"></div>
+
+
+<form action="<?php echo site_url("admin/services/multi-action") ?>" method="post" id="changebulkForm">
+<div style="" class="category-sortable">
+<?php $c = 0; foreach ($serviceList as $category => $services): $c++; ?>
+<div class="categories" data-id="<?=$services[0]["category_id"] ?>">
+    <div class="<?php if ($services[0]["category_type"] == 1): echo 'grey'; endif; ?>  service-block__category ">
+        <div class="service-block__category-title" class="categorySortable" data-category="<?=$category ?>" id="category-<?=$c ?>">
+            <div class="service-block__drag handle">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+<title>Drag-Handle</title>
+<path d="M7 2c-1.104 0-2 .896-2 2s.896 2 2 2 2-.896 2-2-.896-2-2-2zm0 6c-1.104 0-2 .896-2 2s.896 2 2 2 2-.896 2-2-.896-2-2-2zm0 6c-1.104 0-2 .896-2 2s.896 2 2 2 2-.896 2-2-.896-2-2-2zm6-8c1.104 0 2-.896 2-2s-.896-2-2-2-2 .896-2 2 .896 2 2 2zm0 2c-1.104 0-2 .896-2 2s.896 2 2 2 2-.896 2-2-.896-2-2-2zm0 6c-1.104 0-2 .896-2 2s.896 2 2 2 2-.896 2-2-.896-2-2-2z"></path>
+                </svg>
+            </div>
+<?php if ($services[0]["category_secret"] == 1): echo '<small data-toggle="tooltip" data-placement="top" title="" data-original-title="gizli kategori"><i class="fa fa-lock"></i></small> '; endif; 
+
+if($services[0]["category_type"] == 2){
+echo '<span data-post="category_id='.$services[0]["category_id"].'" class="category-visibility category-visible"></span>';
+} 
+if($services[0]["category_type"] == 1){
+echo '<span data-post="category_id='.$services[0]["category_id"].'" class="category-visibility category-invisible"></span>';
+} 
+
+$category_icon_array = json_decode($services[0]["category_icon"],true);
+
+$category_icon_type = $category_icon_array["icon_type"];
+
+if($category_icon_type == "image"){
+
+$icon = "<img style=\"margin-right:10px;\" src=\"".$images[$category_icon_array["image_id"]][0]["link"]."\" class=\"img-responsive btn-group-vertical\">";
+} elseif($category_icon_type == "icon"){
+
+$icon = "<i style=\"margin-right:10px;font-size:18px;\" class=\"".$category_icon_array["icon_class"]."\" aria-hidden=\"true\"></i>";
+} else {
+    $icon = "";
+    
+}
+
+
+echo '<span class="category-name">'.$icon.$category.'</span>'; ?>
+<span style="margin-left:10px;margin-right:10px;font-weight:bold;">|</span>
+
+<a style="margin-right:15px;" class="dcs-pointer" data-toggle="modal" data-target="#modalDiv" data-action="edit_category" data-id="<?=$services[0]["category_id"]?>"><i class="fas fa-pen"></i></a>
+<a class="text-danger" href="<?php echo site_url("admin/services/del_category/".$services[0]["category_id"]) ?>" data-action="del_category"><i class="fas fa-trash"></i></a>
+
+<?php if (!empty($services[0]["service_id"])): ?>
+
+            <div class="service-block__collapse-block">
+                <div id="collapedAdd-<?=$c ?>" class="service-block__collapse-button" data-category="category-<?=$c ?>"></div>
+            </div>
+            <?php endif; ?>
+        </div>
+        <div class="collapse in">
+            <div class="service-block__packages">
+                <table id="servicesTableList" class="Servicecategory-<?=$c ?>">
+<tbody class="service-sortable">
+    <div class="serviceSortable" id="Servicecategory-<?=$c ?>" data-id="category-<?=$c ?>">
+        <?php for ($i = 0; $i < count($services); $i++): 
+      if($services[$i]["service_deleted"] == 0):
+        $api_detail = json_decode($services[$i]["api_detail"], true); ?>
+        <tr id="serviceshowcategory-<?=$c ?>" class="ui-state-default <?php if ($services[$i]["service_type"] == 1): echo "grey"; endif; ?>" data-category="category-<?=$c ?>" data-id="service-<?php echo $services[$i]["service_id"] ?>" data-service="<?php echo $services[$i]["service_name"] ?>">
+<?php if (!empty($services[0]["service_id"])): ?>
+<td class="service-block__checker">
+<?php if ($services[$i]["api_servicetype"] == 1): echo '<div class="service-block__danger"></div>'; endif; ?>
+<span></span>
+<div class="service-block__checkbox">
+    <div class="service-block__drag handle">
+        <svg>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                <title>Drag-Handle</title>
+                <path d="M7 2c-1.104 0-2 .896-2 2s.896 2 2 2 2-.896 2-2-.896-2-2-2zm0 6c-1.104 0-2 .896-2 2s.896 2 2 2 2-.896 2-2-.896-2-2-2zm0 6c-1.104 0-2 .896-2 2s.896 2 2 2 2-.896 2-2-.896-2-2-2zm6-8c1.104 0 2-.896 2-2s-.896-2-2-2-2 .896-2 2 .896 2 2 2zm0 2c-1.104 0-2 .896-2 2s.896 2 2 2 2-.896 2-2-.896-2-2-2zm0 6c-1.104 0-2 .896-2 2s.896 2 2 2 2-.896 2-2-.896-2-2-2z"></path>
+            </svg>
+        </svg>
+    </div>
+    <input type="checkbox" class="selectOrder" name="service[<?php echo $services[$i]["service_id"] ?>]" value="1" style="border:1px solid #fff">
+</div>
+</td>
+
+<td class="service-block__id"><?php echo $services[$i]["service_id"] ?></td>
+<td class="service-block__service"><?php if ($services[$i]["service_secret"] == 1): echo '<small data-toggle="tooltip" data-placement="top" title="" data-original-title="Secret Service"><i class="fa fa-lock"></i></small> '; endif; echo $services[$i]["service_name"]; ?></td>
+<td width="10%"><?php echo servicePackageType($services[$i]["service_package"]); ?><?php if ($services[$i]["time"] != "Not enough data"): ?><div class="tooltip5">
+&nbsp;<i class="fas fa-clock"></i><span class="tooltiptext5"><?php echo $services[$i]["time"]; ?> </span>
+</div>
+<?php endif; ?><?php if ($services[$i]["show_refill"] == "true"): echo '<div  class="tooltip5">&nbsp;<i class="fas fa-sync"></i></span><span class="tooltiptext5" >Refill Button Enabled</span></div>'; endif; ?>
+<?php if ($services[$i]["cancelbutton"] == 1): echo '<div  class="tooltip5">&nbsp;<i  class="fas fa-ban"></i></span><span class="tooltiptext5" >Cancel Button Enabled</span></div>'; endif; ?>
+
+</td>
+<?php if ($services[$i]["show_refill"] == "true"): $type = "refill-deactive"; else : $type = "refill-active"; endif; ?>
+
+<td class="service-block__minorder"> <a href="<?php echo site_url("admin/services/".$type."/".$services[$i]["service_id"]) ?>"> <?php if ($services[$i]["show_refill"] == "false"): echo "Off"; else : echo "On"; endif; ?></a></td>
+
+<?php if ($services[$i]["cancelbutton"] == 2): $type = "cancelbutton-active"; else : $type = "cancelbutton-deactive"; endif; ?>
+<td class="service-block__minorder"> <a href="<?php echo site_url("admin/services/".$type."/".$services[$i]["service_id"]) ?>"> <?php if ($services[$i]["cancelbutton"] == "2"): echo "Off"; else : echo "On"; endif; ?></a></td>
+
+
+<td class="service-block__provider"><?php if ($services[$i]["service_api"] != 0): echo $services[$i]["api_name"]." <span class=\"badge badge-secondary\">".$services[$i]["currency"]."</span><br><span class=\"label label-api\">".$services[$i]["api_service"]."</span>"; else : echo "Manual"; endif; ?></td>
+
+<td class="service-block__rate">
 <?php
-
-if(!defined('BASEPATH')) {
-   die('Direct access to the script is not allowed');
-}
-  if( $admin["access"]["services"] != 1  ):
-    header("Location:".site_url("admin"));
-    exit();
-  endif;
-
-  if( $_SESSION["client"]["data"] ):
-    $data = $_SESSION["client"]["data"];
-    foreach ($data as $key => $value) {
-      $$key = $value;
+$api_price = $api_detail["rate"];
+?>
+<div style="width:100px;<?php if (!$api_detail["rate"]): echo "Empty"; elseif ($services[$i]["service_api"] != 0 && from_to(get_currencies_array("all"), $settings["site_base_currency"], "INR", $services[$i]["service_price"]) > from_to(get_currencies_array("enabled"), $services[$i]["currency"], "INR", $api_price)):
+    echo "color: #38E54D;";
+    elseif ($services[$i]["service_api"] != 0 && from_to(get_currencies_array("all"), $settings["site_base_currency"], "INR", $services[$i]["service_price"]) < from_to(get_currencies_array("all"), $services[$i]["currency"], "INR", $api_price)):
+echo "color: #D2001A;";elseif($services[$i]["service_api"] != 0 && from_to(get_currencies_array("all"), $settings["site_base_currency"], "INR", $services[$i]["service_price"]) == from_to(get_currencies_array("all"), $services[$i]["currency"], "INR", $api_price)):
+echo "color: #FFB200;";
+endif;?>">
+    <?php if ($settings["site_base_currency"] !== $services[$i]["currency"]) {
+        echo "≈ ".format_amount_string($settings["site_base_currency"], $services[$i]["service_price"]);
+    } elseif ($settings["site_base_currency"] == $services[$i]["currency"]) {
+        echo format_amount_string($settings["site_base_currency"], $services[$i]["service_price"]);
     }
-    unset($_SESSION["client"]);
-  endif;
+    ?>
+</div>
+<div class="service-block__provider-value">
+    <?php if ($services[$i]["service_api"] != 0 && $api_detail["rate"]):
+    if ($settings["site_base_currency"] !== $services[$i]["currency"]) {
+        echo "≈ ".format_amount_string($settings["site_base_currency"], from_to(get_currencies_array("all"), $services[$i]["currency"], $settings["site_base_currency"], $api_detail["rate"]));
+    } elseif ($settings["site_base_currency"] == $services[$i]["currency"]) {
 
-  if( !route(2) ):
-    $page   = 1;
-  elseif( is_numeric(route(2)) ):
-    $page   = route(2);
-  elseif( !is_numeric(route(2)) ):
-    $action = route(2);
-  endif;
+        echo format_amount_string($settings["site_base_currency"], from_to(get_currencies_array("all"), $services[$i]["currency"], $settings["site_base_currency"], $api_detail["rate"]));
 
-  if( empty($action) ):
-
-		$query = $conn->query("SELECT * FROM settings", PDO::FETCH_ASSOC);
-		if ( $query->rowCount() ):
-			 foreach( $query as $row ):
-				  $siraal = $row['servis_siralama'];
-			 endforeach;
-		endif;
-		
-		if($_GET["siralama"]!=""):
-		
-			$updatesiralama = $conn->prepare("UPDATE settings SET servis_siralama=:servis_siralama WHERE id=:id ");
-			$updatesiralama->execute(array("servis_siralama"=>$_GET["siralama"],"id"=>1));
-         
-if(strpos($_SERVER["HTTP_REFERER"],$_SERVER["HTTP_HOST"]) != false){
-header("Location:".$_SERVER["HTTP_REFERER"]); 
-} else {
-header("Location:".site_url("admin/services")); 
-}
-		
-		endif;
-
-
-$images = $conn->prepare("SELECT * FROM files");
-$images->execute();
-$images = $images->fetchAll(PDO::FETCH_ASSOC);
-$images = array_group_by($images,"id");
-
-$services = $conn->prepare("SELECT * FROM services RIGHT JOIN categories ON categories.category_id = services.category_id LEFT JOIN service_api ON service_api.id = services.service_api WHERE categories.category_deleted=:cat_del ORDER BY categories.category_line,services.service_line ".$siraal);
-    $services       -> execute([
-		"cat_del" => 0
-		]);
-    $services = $services->fetchAll(PDO::FETCH_ASSOC);
-    $serviceList    = array_group_by($services, 'category_name');
-    
-$count = count($serviceList);
-
-$units = $conn->prepare("SELECT * FROM units_per_page WHERE page=:page ");
-
-$units-> execute(array("page"=> route(1)));
-
-$units = $units->fetch(PDO::FETCH_ASSOC);
-$pageunits =  route(2);
-$to = $units["unit"];
-
-
-$pageCount = ceil($count/$to); if( $page > $pageCount ): $page = 1; endif;
-$where = ($page*$to)-$to;
-
-$paginationArr  = ["count"=>$pageCount,"current"=>$page,"next"=>$page+1,"previous"=>$page-1];
-
-$serviceList = array_slice($serviceList,$where,$to,true);
- 
-    require admin_view('services');
-  elseif( $action == "new-service" ):
-      if( $_POST ):
-        $language   = $conn->prepare("SELECT * FROM languages WHERE default_language=:default");
-        $language->execute(array("default"=>1));
-        $language   = $language->fetch(PDO::FETCH_ASSOC);
-        foreach ($_POST as $key => $value) {
-$$key = $value;
-        }
-$cat = intval(@$_POST["category"]);
-
-        if (!$cat) $cat = $category;
-$name      = mb_convert_encoding($_POST["name"][$language["language_code"]],"UTF-8","UTF-8");
-        $multiName = json_encode($_POST["name"]);
-        if( $package == 2 ): $max = $min; endif;
-        if( empty($name) ):
-$error    = 1;
-$errorText= "Product name cannot be blank";
-$icon     = "error";
-        elseif( empty($package) ):
-$error    = 1;
-$errorText= "The product package cannot be empty";
-$icon     = "error";
-        elseif( empty($category) ):
-$error    = 1;
-$errorText= "Product category cannot be empty";
-$icon     = "error";
-        elseif( !is_numeric($min) ):
-$error    = 1;
-$errorText= "Minimum order quantity cannot be empty";
-$icon     = "error";
-        elseif( $package != 2 && !is_numeric($max) ):
-$error    = 1;
-$errorText= "Maximum order quantity cannot be empty";
-$icon     = "error";
-        elseif( $min > $max ):
-$error    = 1;
-$errorText= "Minimum order quantity cannot exceed the maximum order quantity";
-$icon     = "error";
-        elseif( $mode != 1 && empty($provider) ):
-$error    = 1;
-$errorText= "Service provider cannot be empty";
-$icon     = "error";
-        elseif( $mode != 1 && empty($service) ):
-$error    = 1;
-$errorText= "Service provider service information cannot be empty";
-$icon     = "error";
-        elseif( empty($secret) ):
-$error    = 1;
-$errorText= "Service privacy cannot be empty";
-$icon     = "error";
-        elseif( empty($want_username) ):
-$error    = 1;
-$errorText= "Order link cannot be empty";
-$icon     = "error";
-        elseif( !is_numeric($price) ):
-$error    = 1;
-$errorText= "The product price should consist of numbers";
-$icon     = "error";
-        else:
-if( empty($refill_days) ):
-$refill_days ="30";
-endif;
-if( empty($refill_hours) ):
-$refill_hours ="24";
-endif;
-$api=$conn->prepare("SELECT * FROM service_api WHERE id=:id "); $api->execute(array("id"=>$provider)); $api=$api->fetch(PDO::FETCH_ASSOC);
-if( $mode == 1 ): $provider = 0; $service = 0; endif;
-if( $mode == 2 && $api["api_type"] == 1 ):
-  $smmapi   = new SMMApi(); $services = $smmapi->action(array('key' =>$api["api_key"],'action' =>'services'),$api["api_url"]); $balance = $smmapi->action(array('key' =>$api["api_key"],'action' =>'balance'),$api["api_url"]);
-    foreach ($services as $apiService):
-      if( $service == $apiService->service ):
-        $detail["min"]=$apiService->min;
-        $detail["max"]=$apiService->max;
-        $detail["rate"]=$apiService->rate;
-        $detail["currency"]=$balance->currency;
-        $detail=json_encode($detail);
-      endif;
-    endforeach;
-else:
-  $detail="";
-endif;
-  $row = $conn->query("SELECT * FROM services WHERE category_id='$category' ORDER BY service_line DESC LIMIT 1 ")->fetch(PDO::FETCH_ASSOC);
-  $conn->beginTransaction();
-  $insert = $conn->prepare("INSERT INTO services SET name_lang=:multiName, service_secret=:secret, service_api=:api, service_dripfeed=:dripfeed, instagram_second=:instagram_second, start_count=:start_count, instagram_private=:instagram_private, api_service=:api_service, api_detail=:detail, category_id=:category, service_line=:line, service_type=:type, service_package=:package, service_name=:name, service_price=:price, service_min=:min, service_max=:max, want_username=:want_username, service_speed=:speed, cancelbutton=:cancelbutton, show_refill=:show_refill, refill_days=:refill_days, refill_hours=:refill_hour ");
-  $insert = $insert-> execute(array("secret"=>$secret,"multiName"=>$multiName,"instagram_second"=>$instagram_second,"dripfeed"=>$dripfeed,"start_count"=>$start_count,"instagram_private"=>$instagram_private,"api"=>$provider,"api_service"=>$service,"detail"=>$detail,"category"=>$cat,"line"=>$row["service_line"]+1,"type"=>2,"package"=>$package,"name"=>$name,"price"=>$price,"min"=>$min,"max"=>$max,"want_username"=>$want_username,"speed"=>$speed,"cancelbutton"=>$cancelbutton,"show_refill"=>$show_refill,"refill_days"=>$refill_days,"refill_hour"=>$refill_hours ));
-  if( $insert ):
-$conn->commit();
-if(strpos($_SERVER["HTTP_REFERER"],$_SERVER["HTTP_HOST"]) != false){
-$referrer = $_SERVER["HTTP_REFERER"];
-} else {
-$referrer =site_url("admin/services");
-}
-$error    = 1;
-$errorText= "Successful";
-$icon     = "success";
-  else:
-$conn->rollBack();
-$error    = 1;
-$errorText= "Unsuccessful";
-$icon     = "error";
-  endif;
-        endif;
-        echo json_encode(["t"=>"error","m"=>$errorText,"s"=>$icon,"r"=>$referrer]);
- endif;
-
-
-
- 
-
-  elseif( $action == "edit-service" ):
-    $service_id  = route(3);
-    if( !countRow(["table"=>"services","where"=>["service_id"=>$service_id]]) ): 
-    if(strpos($_SERVER["HTTP_REFERER"],$_SERVER["HTTP_HOST"]) != false){
-header("Location:".$_SERVER["HTTP_REFERER"]); 
-} else {
-header("Location:".site_url("admin/services")); 
-} 
-    
-    exit(); endif;
-      if( $_POST ):
-        $language   = $conn->prepare("SELECT * FROM languages WHERE default_language=:default");
-        $language->execute(array("default"=>1));
-        $language   = $language->fetch(PDO::FETCH_ASSOC);
-foreach ($_POST as $key => $value) {
-  $$key = $value;
-}
-
-//print_r($_POST);exit();
-
-$cat = intval(@$_POST["category"]);
-$name      = mb_convert_encoding($_POST["name"][$language["language_code"]], 'UTF-8', 'UTF-8');
-$multiName = json_encode($_POST["name"]);
-
-
-
-if( $package == 2 ): $max = $min; endif;
-$serviceInfo  = $conn->prepare("SELECT * FROM services INNER JOIN service_api ON service_api.id = services.service_api WHERE service_id=:id ");
-$serviceInfo -> execute(array("id"=>route(3) ));
-$serviceInfo  = $serviceInfo->fetch(PDO::FETCH_ASSOC);
-        if( empty($name) ):
-$error    = 1;
-$errorText= "Product name cannot be blank";
-$icon     = "error";
-        elseif( empty($package) ):
-$error    = 1;
-$errorText= "The product package cannot be empty";
-$icon     = "error";
-        elseif( empty($category) ):
-$error    = 1;
-$errorText= "Product category cannot be empty";
-$icon     = "error";
-        elseif( !is_numeric($min) ):
-$error    = 1;
-$errorText= "Minimum order quantity cannot be empty";
-$icon     = "error";
-        elseif( $package != 2 && !is_numeric($max) ):
-$error    = 1;
-$errorText= "Maximum order quantity cannot be empty";
-$icon     = "error";
-        elseif( $min > $max ):
-$error    = 1;
-$errorText= "Minimum order quantity cannot exceed the maximum order quantity";
-$icon     = "error";
-        elseif( $mode != 1 && empty($provider) ):
-$error    = 1;
-$errorText= "Service provider cannot be empty";
-$icon     = "error";
-        elseif( $mode != 1 && empty($service) ):
-$error    = 1;
-$errorText= "Service provider service information cannot be empty";
-$icon     = "error";
-        elseif( empty($secret) ):
-$error    = 1;
-$errorText= "Service privacy cannot be empty";
-$icon     = "error";
-        elseif( empty($want_username) ):
-$error    = 1;
-$errorText= "Order link cannot be empty";
-$icon     = "error";
-        elseif( !is_numeric($price) ):
-$error    = 1;
-$errorText= "The product price should consist of numbers";
-$icon     = "error";
-        else:
-  $api=$conn->prepare("SELECT * FROM service_api WHERE id=:id "); $api->execute(array("id"=>$provider)); $api=$api->fetch(PDO::FETCH_ASSOC);
-  if( $mode == 1 ): $provider = 0; $service = 0; endif;
-  if( $mode == 2 && $api["api_type"] == 1 ):
-$smmapi   = new SMMApi(); $services = $smmapi->action(array('key' =>$api["api_key"],'action' =>'services'),$api["api_url"]); $balance = $smmapi->action(array('key' =>$api["api_key"],'action' =>'balance'),$api["api_url"]);
-  foreach ($services as $apiService):
-    if( $service == $apiService->service ):
-      $detail["min"]=$apiService->min;
-      $detail["max"]=$apiService->max;
-      $detail["rate"]=$apiService->rate;
-      $detail["currency"]=$balance->currency;
-      $detail=json_encode($detail);
-    endif;
-  endforeach;
-  else:
-$detail="";
-  endif;
-  if( $serviceInfo["category_id"] != $category ): $row = $conn->query("SELECT * FROM services WHERE category_id='$category' ORDER BY service_line DESC LIMIT 1 ")->fetch(PDO::FETCH_ASSOC); $last_category=$serviceInfo["category_id"]; $last_line=$serviceInfo["service_line"]; $line= $row["service_line"] + 1; else: $line= $serviceInfo["service_line"]; endif;
-  $conn->beginTransaction();
-  $update = $conn->prepare("UPDATE services SET api_detail=:detail, name_lang=:multiName, service_dripfeed=:dripfeed, api_servicetype=:type, instagram_second=:instagram_second, start_count=:start_count, instagram_private=:instagram_private, service_api=:api, api_service=:api_service, category_id=:category, service_package=:package, service_name=:name,service_price=:price, service_min=:min, service_secret=:secret, service_max=:max, want_username=:want_username, service_speed=:speed, cancelbutton=:cancelbutton, show_refill=:show_refill, refill_days=:refill_days, refill_hours=:refill_hour,
-  service_overflow=:service_overflow,service_sync=:sync WHERE service_id=:id ");
-  $update = $update-> execute(array("id"=>route(3),"multiName"=>$multiName,"secret"=>$secret,"type"=>2,"detail"=>$detail,"dripfeed"=>$dripfeed,"instagram_second"=>$instagram_second,"start_count"=>$start_count,"instagram_private"=>$instagram_private,"api"=>$provider,"api_service"=>$service,"category"=>$category,"package"=>$package,"name"=>$name,"price"=>$price,"min"=>$min,"max"=>$max,"want_username"=>$want_username,"speed"=>$speed,"cancelbutton"=>$cancelbutton,"show_refill"=>$show_refill,"refill_days"=>$refill_days,"refill_hour"=>$refill_hours,"service_overflow" => $service_overflow,"sync" => $service_sync));
-  if( $update ):
-$conn->commit();
-$rows = $conn->prepare("SELECT * FROM services WHERE category_id=:c_id && service_line>=:line ");
-$rows->execute(array("c_id"=>$last_category,"line"=>$last_line ));
-$rows = $rows->fetchAll(PDO::FETCH_ASSOC);
-  foreach( $rows as $row ):
-    $update = $conn->prepare("UPDATE services SET service_line=:line WHERE service_id=:id ");
-    $update->execute(array("line"=>$row["service_line"]-1,"id"=>$row["service_id"] ));
-  endforeach;
-$error    = 1;
-$errorText= "Successful";
-$icon     = "success";
-if(strpos($_SERVER["HTTP_REFERER"],$_SERVER["HTTP_HOST"]) != false){
-$referrer = $_SERVER["HTTP_REFERER"];
-} else {
-$referrer =site_url("admin/services");
-}
-if($serviceInfo["show_refill"] != $show_refill ):
-
-  
-if($show_refill == "true"):
-$insert2= $conn->prepare("INSERT INTO updates SET service_id=:s_id, action=:action, description=:description, date=:date ");
-$insert2= $insert2->execute(array("s_id"=>$service_id,"action"=>"Refill Activated","description"=>"Refill Button has been activated","date"=>date("Y-m-d H:i:s") ));
-else:
-$insert2= $conn->prepare("INSERT INTO updates SET service_id=:s_id, action=:action, description=:description, date=:date ");
-$insert2= $insert2->execute(array("s_id"=>$service_id,"action"=>"Refill Deactivated","description"=>"Refill Button has been Deativated","date"=>date("Y-m-d H:i:s") ));
-endif;
-endif;
-if($serviceInfo["cancelbutton"] != $cancelbutton ):
-if($cancelbutton == "1"):
-$insert2= $conn->prepare("INSERT INTO updates SET service_id=:s_id, action=:action, description=:description, date=:date ");
-$insert2= $insert2->execute(array("s_id"=>$service_id,"action"=>"Cancel Activated","description"=>"Cancel Button has been activated","date"=>date("Y-m-d H:i:s") ));
-else:
-$insert2= $conn->prepare("INSERT INTO updates SET service_id=:s_id, action=:action, description=:description, date=:date ");
-$insert2= $insert2->execute(array("s_id"=>$service_id,"action"=>"Cancel Deactivated","description"=>"Cancel Button has been Deativated","date"=>date("Y-m-d H:i:s") ));
-endif;
-endif;
-
-
-
-if($serviceInfo["service_price"] < $price ):
-
-  
-
-$insert2= $conn->prepare("INSERT INTO updates SET service_id=:s_id, action=:action, description=:description, date=:date ");
-$insert2= $insert2->execute(array("s_id"=>$service_id,"action"=>"Price Increased","description"=>"Price changed from ". $serviceInfo["service_price"] ." to $price","date"=>date("Y-m-d H:i:s") ));
-endif;
-if($serviceInfo["service_price"] > $price ):
-
-  
-
-$insert2= $conn->prepare("INSERT INTO updates SET service_id=:s_id, action=:action, description=:description, date=:date ");
-$insert2= $insert2->execute(array("s_id"=>$service_id,"action"=>"Price Decreased","description"=>"Price changed from ". $serviceInfo["service_price"] ." to $price","date"=>date("Y-m-d H:i:s") ));
-endif;
-
-if($serviceInfo["service_min"] < $min ):
-
-  
-
-$insert2= $conn->prepare("INSERT INTO updates SET service_id=:s_id, action=:action, description=:description, date=:date ");
-$insert2= $insert2->execute(array("s_id"=>$service_id,"action"=>"Minimum Increased","description"=>"Minimum amount changed from ". $serviceInfo["service_min"] ." to $min","date"=>date("Y-m-d H:i:s") ));
-endif;
-if($serviceInfo["service_min"] > $min ):
-
-  
-
-$insert2= $conn->prepare("INSERT INTO updates SET service_id=:s_id, action=:action, description=:description, date=:date ");
-$insert2= $insert2->execute(array("s_id"=>$service_id,"action"=>"Minimum Decreased","description"=>"Minimum amount changed from ". $serviceInfo["service_min"] ." to $min","date"=>date("Y-m-d H:i:s") ));
-endif;
-if($serviceInfo["service_max"] < $max ):
-
-  
-
-$insert2= $conn->prepare("INSERT INTO updates SET service_id=:s_id, action=:action, description=:description, date=:date ");
-$insert2= $insert2->execute(array("s_id"=>$service_id,"action"=>"Maximum Increased","description"=>"Maximum amount changed from ". $serviceInfo["service_max"] ." to $max","date"=>date("Y-m-d H:i:s") ));
-endif;
-if($serviceInfo["service_max"] > $max ):
-
-  
-
-$insert2= $conn->prepare("INSERT INTO updates SET service_id=:s_id, action=:action, description=:description, date=:date ");
-$insert2= $insert2->execute(array("s_id"=>$service_id,"action"=>"Maximum Decreased","description"=>"Maximum amount changed from ". $serviceInfo["service_max"] ." to $max","date"=>date("Y-m-d H:i:s") ));
-endif;
- else:
-$conn->rollBack();
-$error    = 1;
-$errorText= "Unsuccessful";
-$icon     = "error";
-  endif;
-        endif;
-        echo json_encode(["t"=>"error","m"=>$errorText,"s"=>$icon,"r"=>$referrer]);
-      endif;
-
-      elseif( $action == "edit-service-name" ):
-        $service_id  = route(3);
-    if( !countRow(["table"=>"services","where"=>["service_id"=>$service_id]]) ):
-    if(strpos($_SERVER["HTTP_REFERER"],$_SERVER["HTTP_HOST"]) != false){
-    header("Location:".$_SERVER["HTTP_REFERER"]); 
-    } else {
-    header("Location:".site_url("admin/services")); 
     }
-    
-      exit();
-      
-      endif;
-          if( $_POST ):
-            $language   = $conn->prepare("SELECT * FROM languages WHERE default_language=:default");
-            $language->execute(array("default"=>1));
-            $language   = $language->fetch(PDO::FETCH_ASSOC);
-    foreach ($_POST as $key => $value) {
-      $$key = $value;
-    }
-        
-    $multiDesc    = $_POST["service_name"];
-    
-    $multiName = json_encode($multiDesc);
-    
-      $conn->beginTransaction();
-    $update = $conn->prepare("UPDATE services SET service_name=:name,name_lang=:name_lang WHERE service_id=:id ");
-    $update = $update-> execute(array(
-    "id"=>route(3),
-    "name" =>  $multiDesc[$language["language_code"]],
-    "name_lang"=>$multiName
-    ));
-    
-      if( $update ):
-    $conn->commit();
-    $error    = 1;
-    $errorText= "Successful";
-    $icon     = "success";
-      else:
-    $conn->rollBack();
-    $error    = 1;
-    $errorText= "Unsuccessful";
-    $icon     = "error";
-      endif;
-    
-            echo json_encode(["t"=>"error","m"=>$errorText,"s"=>$icon]);
-          endif;
-  elseif( $action == "edit-description" ):
-    $service_id  = route(3);
-if( !countRow(["table"=>"services","where"=>["service_id"=>$service_id]]) ):
-if(strpos($_SERVER["HTTP_REFERER"],$_SERVER["HTTP_HOST"]) != false){
-header("Location:".$_SERVER["HTTP_REFERER"]); 
-} else {
-header("Location:".site_url("admin/services")); 
-}
- 
-  
-  exit();
-  
-  endif;
-      if( $_POST ):
-        $language   = $conn->prepare("SELECT * FROM languages WHERE default_language=:default");
-        $language->execute(array("default"=>1));
-        $language   = $language->fetch(PDO::FETCH_ASSOC);
-foreach ($_POST as $key => $value) {
-  $$key = $value;
-}
-    
-$multiDesc    = $_POST["service_description"];
-$service_desc = mb_convert_encoding($_POST["service_description"][$language["language_code"]], 'UTF-8', 'UTF-8');
-$multiDesc = json_encode($multiDesc);
+    endif; ?>
+</div>
+</td>
+<td class="service-block__minorder">
+<div>
+    <?php echo $services[$i]["service_min"] ?>
+</div>
+<?php if ($services[$i]["service_api"] != 0): echo '<div class="service-block__provider-value">'.$api_detail["min"].'</div>'; endif; ?>
+</td>
+<td class="service-block__minorder">
+<div>
+    <?php echo $services[$i]["service_max"] ?>
+</div>
+<?php if ($services[$i]["service_api"] != 0): echo '<div class="service-block__provider-value">'.$api_detail["max"].'</div>'; endif; ?>
+</td>
+<td class="service-block__visibility"><?php if ($services[$i]["service_type"] == 1): echo "Disabled"; else : echo "Enabled"; endif; ?> <?php if ($services[$i]["api_servicetype"] == 1): echo '<span class="text-danger" title="Service provider removed service"><span class="fa fa-exclamation-circle"></span></span>'; endif; ?> </td>
+<td class="service-block__action">
+<div class="dropdown pull-right">
+    <button type="button" class="btn btn-default btn-xs dropdown-toggle btn-xs-caret" data-toggle="dropdown">Options <span class="caret"></span></button>
+    <ul class="dropdown-menu">
+        <li><a style="cursor:pointer;" data-toggle="modal" data-target="#modalDiv" data-action="edit_service" data-id="<?=$services[$i]["service_id"] ?>">Edit Service</a></li>
+        <li><a style="cursor:pointer;" data-toggle="modal" data-target="#modalDiv" data-action="edit_service_name" data-id="<?=$services[$i]["service_id"] ?>">Edit Service Name</a></li>
+        <li><a style="cursor:pointer;" data-toggle="modal" data-target="#modalDiv" data-action="edit_description" data-id="<?=$services[$i]["service_id"] ?>">Edit Description</a></li>
+        <li><a style="cursor:pointer;" data-toggle="modal" data-target="#modalDiv" data-action="edit_time" data-id="<?=$services[$i]["service_id"] ?>">Edit Average Time</a></li>
+        <?php if ($services[$i]["service_type"] == 1): $type = "service-active"; else : $type = "service-deactive"; endif; ?>
+        <li><a href="<?php echo site_url("admin/services/".$type."/".$services[$i]["service_id"]) ?>">Service <?php if ($services[$i]["service_type"] == 1): echo "Activate"; else : echo "Deactivate"; endif; ?></a></li>
 
-  $conn->beginTransaction();
-$update = $conn->prepare("UPDATE services SET service_description=:desc,description_lang=:description_lang WHERE service_id=:id ");
-$update = $update-> execute(array(
-"id"=>route(3),
-"desc" => $service_desc,
-"description_lang"=>$multiDesc
-));
+        <?php if ($services[$i]["show_refill"] == "true"): $type = "refill-deactive"; else : $type = "refill-active"; endif; ?>
+        <li><a href="<?php echo site_url("admin/services/".$type."/".$services[$i]["service_id"]) ?>">Refill <?php if ($services[$i]["show_refill"] == "true"): echo "Deactivate"; else : echo "Activate"; endif; ?></a></li>
 
-  if( $update ):
-$conn->commit();
-$error    = 1;
-$errorText= "Successful";
-$icon     = "success";
-  else:
-$conn->rollBack();
-$error    = 1;
-$errorText= "Unsuccessful";
-$icon     = "error";
-  endif;
+        <?php if ($services[$i]["cancelbutton"] == 2): $type = "cancelbutton-active"; else : $type = "cancelbutton-deactive"; endif; ?>
+        <li><a href="<?php echo site_url("admin/services/".$type."/".$services[$i]["service_id"]) ?>">Cancel Button <?php if ($services[$i]["cancelbutton"] == 1): echo "Deactivate"; else : echo "Activate"; endif; ?></a></li>
 
-        echo json_encode(["t"=>"error","m"=>$errorText,"s"=>$icon]);
-      endif;
- elseif( $action == "edit-time" ):
-    $service_id  = route(3);
-if( !countRow(["table"=>"services","where"=>["service_id"=>$service_id]]) ): if(strpos($_SERVER["HTTP_REFERER"],$_SERVER["HTTP_HOST"]) != false){
-header("Location:".$_SERVER["HTTP_REFERER"]); 
-} else {
-header("Location:".site_url("admin/services")); 
-}
 
-exit(); endif;
-      if( $_POST ):
-        $language   = $conn->prepare("SELECT * FROM languages WHERE default_language=:default");
-        $language->execute(array("default"=>1));
-        $language   = $language->fetch(PDO::FETCH_ASSOC);
-foreach ($_POST as $key => $value) {
-  $$key = $value;
-}
-$description  = $_POST["description"][$language["language_code"]];
-$multiDesc    = json_encode($_POST["description"]);
+        <li><a href="<?php echo site_url("admin/services/delete/".$services[$i]["service_id"]) ?>">Delete Service</a></li>
+    </ul>
+</div>
+</td>
+<?php endif; ?>
+        </tr>
+        <?php 
+        endif;
+        endfor; ?>
+    </div>
+</tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+<?php endforeach; ?>
 
-  $conn->beginTransaction();
-  $update = $conn->prepare("UPDATE services SET time=:description, time_lang=:multi WHERE service_id=:id ");
-  $update = $update-> execute(array("id"=>route(3),"multi"=>$multiDesc,"description"=>$description ));
-  if( $update ):
-$conn->commit();
-$error    = 1;
-$errorText= "Successful";
-$icon     = "success";
-  else:
-$conn->rollBack();
-$error    = 1;
-$errorText= "Unsuccessful";
-$icon     = "error";
-  endif;
-        echo json_encode(["t"=>"error","m"=>$errorText,"s"=>$icon]);
-      endif;
-
-elseif( $action == "new-category" ):
-      if( $_POST ):
-        $name   = $_POST["name"];
-        $secret = $_POST["secret"];
-        $icon   = $_POST["icon"];
-        $position = $_POST["position"];
-
-        if( empty($name) ):
-$error    = 1;
-$errorText= "Kategori adı boş olamaz";
-$icon     = "error";
-        else:
-$row = $conn->query("SELECT * FROM categories ORDER BY category_line DESC LIMIT 1 ")->fetch(PDO::FETCH_ASSOC);
-  $conn->beginTransaction();
- 
- $nweIcon = $icon!=""?$icon:" ";
-if($position == "top" ):
-$cat = $conn->query("SELECT * FROM categories ORDER BY category_line ASC LIMIT 1 ")->fetch(PDO::FETCH_ASSOC);
-  $insert = $conn->prepare("INSERT INTO categories SET category_name=:name, category_line=:line, category_icon=:icon, category_secret=:secret, is_refill=:is_refill ");
-  $insert = $insert-> execute(array("name"=>$name,"secret"=>$secret,"icon"=>$nweIcon,"is_refill"=>"false","line"=>($cat["category_line"]-1) ));
-
-else:
-$insert = $conn->prepare("INSERT INTO categories SET category_name=:name, category_line=:line, category_icon=:icon, category_secret=:secret, is_refill=:is_refill ");
-  $insert = $insert-> execute(array("name"=>$name,"secret"=>$secret,"icon"=>$nweIcon,"is_refill"=>"false","line"=>($row["category_line"]+1) ));
+<?php
+$services = $conn->prepare("SELECT * FROM services LEFT JOIN service_api ON service_api.id = services.service_api WHERE services.category_id=:c_id ORDER BY services.service_line ASC ");
+$services -> execute(array("c_id" => 0));
+$services = $services->fetchAll(PDO::FETCH_ASSOC);
+if ($services):
+?>
+<div class="service-block__category ">
+    <div class="service-block__category-title" class="categorySortable" data-category="notcategory" id="category-0">
+        Uncategorized
+        <div class="service-block__collapse-block">
+            <div id="collapedAdd-0" class="service-block__collapse-button" data-category="category-0"></div>
+        </div>
+    </div>
+    <div class="collapse in">
+        <div class="service-block__packages">
+            <table id="servicesTableList" class="Servicecategory-0">
+                <tbody class="service-sortable">
+<div class="serviceSortable" id="Servicecategory-0" data-id="category-0">
+    <?php foreach ($services as $service): $api_detail = json_decode($service["api_detail"], true); ?>
+    <tr id="serviceshowcategory-0" class="ui-state-default <?php if ($service["service_type"] == 1): echo "grey"; endif; ?>" data-category="category-0" data-id="service-<?php echo $service["service_id"] ?>" data-service="<?php echo mb_convert_encoding($service["service_name"], "UTF-8", "UTF-8") ?>">
+        <td class="service-block__checker">
+<!-- <div class="service-block__danger"></div> //Servis diğer sitede pasifse burayı aktif et-->
+<span></span>
+<div class="service-block__checkbox">
+<div class="service-block__drag handle">
+    <svg>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+            <title>Drag-Handle</title>
+            <path d="M7 2c-1.104 0-2 .896-2 2s.896 2 2 2 2-.896 2-2-.896-2-2-2zm0 6c-1.104 0-2 .896-2 2s.896 2 2 2 2-.896 2-2-.896-2-2-2zm0 6c-1.104 0-2 .896-2 2s.896 2 2 2 2-.896 2-2-.896-2-2-2zm6-8c1.104 0 2-.896 2-2s-.896-2-2-2-2 .896-2 2 .896 2 2 2zm0 2c-1.104 0-2 .896-2 2s.896 2 2 2 2-.896 2-2-.896-2-2-2zm0 6c-1.104 0-2 .896-2 2s.896 2 2 2 2-.896 2-2-.896-2-2-2z"></path>
+        </svg>
+    </svg>
+</div>
+<input type="checkbox" class="selectOrder" name="service[<?php echo $service["service_id"] ?>]" value="1" style="border:1px solid #fff">
+</div>
+        </td>
+        <td class="service-block__id"><?php echo $service["service_id"] ?></td>
+        <td class="service-block__service"><?php if (mb_convert_encoding($service["service_secret"], "UTF-8", "UTF-8") == 1): echo '<small data-toggle="tooltip" data-placement="top" title="" data-original-title="Secret service"><i class="fa fa-lock"></i></small> '; endif; echo mb_convert_encoding($service["service_name"], "UTF-8", "UTF-8"); ?></td>
+        <td class="service-block__type" nowrap=""><?php echo servicePackageType($service["service_package"]); ?></td>
+        <td class="service-block__provider"><?php if ($service["service_api"] != 0): echo $service["api_name"]; else : echo "Manual"; endif; ?></td>
+        <td class="service-block__rate">
+<?php
+if ($api_detail["currency"] == "USD"):
+$api_price = $api_detail["rate"];
 endif;
-  if( $insert ):
-  
-$conn->commit();
+?>
+<div style="<?php if ($service["service_api"] != 0 && $service["service_price"] > $api_price): echo "color: green"; elseif ($service["service_api"] != 0 && $service["service_price"] < $api_price): echo "color: red"; endif ?>">
+<?php echo $service["service_price"] ?>
+</div>
+<?php if ($service["service_api"] != 0): echo '<div class="service-block__provider-value"><i class="fa fa-'.strtolower($api_detail["currency"]).'"></i> '.priceFormat($api_detail["rate"]).'</div>'; endif; ?>
+        </td>
+        <td class="service-block__minorder">
+<div>
+<?php echo $service["service_min"] ?>
+</div>
+<?php if ($service["service_api"] != 0): echo '<div class="service-block__provider-value">'.$api_detail["min"].'</div>'; endif; ?>
+        </td>
+        <td class="service-block__minorder">
+<div>
+<?php echo $service["service_max"] ?>
+</div>
+<?php if ($service["service_api"] != 0): echo '<div class="service-block__provider-value">'.$api_detail["max"].'</div>'; endif; ?>
+        </td>
+        <td class="service-block__visibility"><?php if ($service["service_type"] == 1): echo "Deactive"; else : echo "Active"; endif; ?> </td>
+        <td class="service-block__action">
+<div class="dropdown pull-right">
+<button type="button" class="btn btn-default btn-xs dropdown-toggle btn-xs-caret" data-toggle="dropdown">Options <span class="caret"></span></button>
+<ul class="dropdown-menu">
+    <li><a style="cursor:pointer;" data-toggle="modal" data-target="#modalDiv" data-action="edit_service" data-id="<?=$service["service_id"] ?>">Edit Service</a></li>
+    <li><a style="cursor:pointer;" data-toggle="modal" data-target="#modalDiv" data-action="edit_description" data-id="<?=$service["service_id"] ?>">Edit Description</a></li>
+    <?php if ($service["service_type"] == 1): $type = "service-active"; else : $type = "service-deactive"; endif; ?>
+    <li><a href="<?php echo site_url("admin/services/".$type."/".$service["service_id"]) ?>">Service <?php if ($service["service_type"] == 1): echo "Enable"; else : echo "Disable"; endif; ?></a></li>
+    <li><a href="<?php echo site_url("admin/services/del_price/".$service["service_id"]) ?>">Delete Price</a></li>
+    <li><a href="<?php echo site_url("admin/services/delete/".$services[$i]["service_id"]) ?>">Delete Service</a></li>
+</ul>
+</div>
+        </td>
+    </tr>
+    <?php endforeach; ?>
+</div>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
 
-unset($_SESSION["data"]);
-$error    = 1;
-$errorText= "Success";
-$icon     = "success";
-if(strpos($_SERVER["HTTP_REFERER"],$_SERVER["HTTP_HOST"]) != false){
-$referrer = $_SERVER["HTTP_REFERER"];
-} else {
-$referrer =site_url("admin/services");
-}
-  else:
-$conn->rollBack();
-   
-$error    = 1;
-$errorText= "Failed";
-$icon     = "error";
-  endif;
-        endif;
-        echo json_encode(["t"=>"error","m"=>$errorText,"s"=>$icon,"r"=>$referrer]);
+<?php endif; ?>
+</div>
+
+<input type="hidden" name="bulkStatus" id="bulkStatus" value="-1">
+            </form>
+        </div>
+    </div>
+    
+</div>
+
+
+
+<?php if( $paginationArr["count"] > 1 ): ?>
+     <div class="row">
+        <div class="col-sm-8">
+  <nav>
+ <ul class="pagination">
+ <?php if( $paginationArr["current"] != 1 ): ?>
+  <li class="prev"><a href="<?php echo site_url("admin/services/1".$search_link) ?>">&laquo;</a></li>
+  <li class="prev"><a href="<?php echo site_url("admin/services/".$paginationArr["previous"].$search_link) ?>">&lsaquo;</a></li>
+  <?php
       endif;
-  elseif( $action == "edit-category" ):
-
-if( $_POST ):
-
-$category_id = $_POST["cat_id"];
-
-$multiName = $_POST["category_name"];
-
-
-$language   = $conn->prepare("SELECT * FROM languages WHERE default_language=:default");
-
-$language->execute(array("default"=>1));
-
-$language   = $language->fetch(PDO::FETCH_ASSOC);
-
-$category_name = $multiName[$language["language_code"]];
-
-$multiName = json_encode($multiName);
+      for ($page=1; $page<=$pageCount; $page++):
+        if( $page >= ($paginationArr['current']-9) and $page <= ($paginationArr['current']+9) ):
+  ?>
+  <li class="<?php if( $page == $paginationArr["current"] ): echo "active"; endif; ?> "><a href="<?php echo site_url("admin/services/".$page.$search_link) ?>"><?=$page?></a></li>
+  <?php endif; endfor;
+        if( $paginationArr["current"] != $paginationArr["count"] ):
+  ?>
+  <li class="next"><a href="<?php echo site_url("admin/services/".$paginationArr["next"].$search_link) ?>" data-page="1">&rsaquo;</a></li>
+  <li class="next"><a href="<?php echo site_url("admin/services/".$paginationArr["count"].$search_link) ?>" data-page="1">&raquo;</a></li> 
+  <?php endif; ?>
+ </ul>
+  </nav>
+        </div>
+     </div>
+   <?php endif; ?>
 
 
 
-$icon_type = $_POST["icon_type"];
-$icon_class = $_POST["icon_class"];
-$image_id = $_POST["image_id"];
-
-
-if($icon_type == "icon"){
-    $save = array(
-     "icon_type" => "icon",
-     "icon_class" => $icon_class
-     );
-}
-if($icon_type == "image"){
-    $save = array(
-     "icon_type" => "image",
-     "image_id" => $image_id
-     );
-}
-$save = json_encode($save,true);
-$conn->beginTransaction();
-$update = $conn->prepare("UPDATE categories SET category_name=:name, category_name_lang=:lang,category_icon=:icon WHERE category_id=:id");
-$update = $update->execute(array(
-"name"=>$category_name,
-"lang" => $multiName,
-"icon" => $save,
-"id"=>$category_id
-));
-$conn->commit();
-$resp = array(
- "success" => true,
- "message" => "Category Updated."
- );
-echo json_encode($resp,true);
-endif;
-  elseif( $action == "new-subscription" ):
-      if( $_POST ):
-        $language   = $conn->prepare("SELECT * FROM languages WHERE default_language=:default");
-        $language->execute(array("default"=>1));
-        $language   = $language->fetch(PDO::FETCH_ASSOC);
-        foreach ($_POST as $key => $value) {
-$$key = $value;
-        }
-$cat = intval(@$_POST["category"]);
-        if (!$cat) $cat = $category;
-        $name      = mb_convert_encoding($_POST["name"][$language["language_code"]],"UTF-8","UTF-8");
-        $multiName = json_encode($_POST["name"]);
-
-        if( empty($name) ):
-$error    = 1;
-$errorText= "Product name cannot be blank";
-$icon     = "error";
-        elseif( empty($package) ):
-$error    = 1;
-$errorText= "The product package cannot be empty";
-$icon     = "error";
-        elseif( empty($category) ):
-$error    = 1;
-$errorText= "Product category cannot be empty";
-$icon     = "error";
-        elseif( empty($provider) ):
-$error    = 1;
-$errorText= "Service provider cannot be empty";
-$icon     = "error";
-        elseif( empty($service) ):
-$error    = 1;
-$errorText= "Service provider service information cannot be empty";
-$icon     = "error";
-        elseif( empty($secret) ):
-$error    = 1;
-$errorText= "Service privacy cannot be empty";
-$icon     = "error";
-        elseif(  ( $package == 11 || $package == 12 ) && !is_numeric($price) ):
-$error    = 1;
-$errorText= "The product price should consist of numbers";
-$icon     = "error";
-        elseif( ( $package == 11 || $package == 12 ) && !is_numeric($min) ):
-$error    = 1;
-$errorText= "Minimum order quantity cannot be empty";
-$icon     = "error";
-        elseif( ( $package == 11 || $package == 12 ) && !is_numeric($max) ):
-$error    = 1;
-$errorText= "Maximum order quantity cannot be empty";
-$icon     = "error";
-        elseif( ( $package == 11 || $package == 12 ) && $min > $max ):
-$error    = 1;
-$errorText= "Minimum order quantity cannot exceed the maximum order quantity";
-$icon     = "error";
-        elseif(  ( $package == 14 || $package == 15 ) && !is_numeric($autopost) ):
-$error    = 1;
-$errorText= "Post amount cannot be empty";
-$icon     = "error";
-        elseif(  ( $package == 14 || $package == 15 ) && !is_numeric($limited_min) ):
-$error    = 1;
-$errorText= "Order quantity cannot be empty";
-$icon     = "error";
-        elseif(  ( $package == 14 || $package == 15 ) && !is_numeric($autotime) ):
-$error    = 1;
-$errorText= "Package Time cannot be empty";
-$icon     = "error";
-        else:
-  $api=$conn->prepare("SELECT * FROM service_api WHERE id=:id "); $api->execute(array("id"=>$provider)); $api=$api->fetch(PDO::FETCH_ASSOC);
-  if( $mode == 1 ): $provider = 0; $service = 0; endif;
-  if( $mode == 2 && $api["api_type"] == 1 ):
-$smmapi   = new SMMApi(); $services = $smmapi->action(array('key' =>$api["api_key"],'action' =>'services'),$api["api_url"]); $balance = $smmapi->action(array('key' =>$api["api_key"],'action' =>'balance'),$api["api_url"]);
-  foreach ($services as $apiService):
-    if( $service == $apiService->service ):
-      $detail["min"]=$apiService->min;
-      $detail["max"]=$apiService->max;
-      $detail["rate"]=$apiService->rate;
-      $detail["currency"]=$balance->currency;
-      $detail=json_encode($detail);
-    endif;
-  endforeach;
-  else:
-$detail="";
-  endif;
-  if( $package == 14 || $package == 15 ): $min = $limited_min; $max = $min; $price = $limited_price; endif;
-  $row = $conn->query("SELECT * FROM services WHERE category_id='$category' ORDER BY service_line DESC LIMIT 1 ")->fetch(PDO::FETCH_ASSOC);
-  $conn->beginTransaction();
-  $insert = $conn->prepare("INSERT INTO services SET name_lang=:multiName, service_speed=:speed, service_api=:api, api_service=:api_service, api_detail=:detail, category_id=:category, service_line=:line, service_type=:type, service_package=:package, service_name=:name, service_price=:price, service_min=:min, service_max=:max, service_autotime=:autotime, service_autopost=:autopost, service_secret=:secret ");
-  $insert = $insert-> execute(array("api"=>$provider,"multiName"=>$multiName,"speed"=>$speed,"detail"=>$detail,"api_service"=>$service,"category"=>$cat,"line"=>$row["service_line"]+1,"type"=>2,"package"=>$package,"name"=>$name,"price"=>$price,"min"=>$min,"max"=>$max,"autotime"=>$autotime,"autopost"=>$autopost,"secret"=>$secret ));
-  if( $insert ):
-$conn->commit();
-$error    = 1;
-$errorText= "Successful";
-if(strpos($_SERVER["HTTP_REFERER"],$_SERVER["HTTP_HOST"]) != false){
-$referrer = $_SERVER["HTTP_REFERER"];
-} else {
-$referrer =site_url("admin/services");
-}
-$icon     = "success";
-  else:
-$conn->rollBack();
-$error    = 1;
-$errorText= "Unsuccessful";
-$icon     = "error";
-  endif;
-        endif;
-        echo json_encode(["t"=>"error","m"=>$errorText,"s"=>$icon,"r"=>$referrer]);
-      endif;
-  elseif( $action == "edit-subscription" ):
-      if( $_POST ):
-        $language   = $conn->prepare("SELECT * FROM languages WHERE default_language=:default");
-        $language->execute(array("default"=>1));
-        $language   = $language->fetch(PDO::FETCH_ASSOC);
-        foreach ($_POST as $key => $value) {
-$$key = $value;
-        }
-        // ismi değiştirdiği alan servicslerden
-         $cat = intval(@$_POST["category"]);
-$name      = $_POST["name"][$language["language_code"]];
-$multiName = json_encode($_POST["name"]);
-        $serviceInfo  = $conn->prepare("SELECT * FROM services INNER JOIN service_api ON service_api.id = services.service_api WHERE service_id=:id ");
-        $serviceInfo -> execute(array("id"=>route(3) ));
-        $serviceInfo  = $serviceInfo->fetch(PDO::FETCH_ASSOC);
-        if( empty($name) ):
-$error    = 1;
-$errorText= "Product name cannot be blank";
-$icon     = "error";
-        elseif( empty($category) ):
-$error    = 1;
-$errorText= "Product category cannot be empty";
-$icon     = "error";
-        elseif( empty($provider) ):
-$error    = 1;
-$errorText= "Service provider cannot be empty";
-$icon     = "error";
-        elseif( empty($service) ):
-$error    = 1;
-$errorText= "Service provider service information cannot be empty";
-$icon     = "error";
-        elseif( empty($secret) ):
-$error    = 1;
-$errorText= "Service privacy cannot be empty";
-        elseif(  ( $serviceInfo["service_package"] == 11 || $serviceInfo["service_package"] == 12 ) && !is_numeric($price) ):
-$error    = 1;
-$errorText= "The product price should consist of numbers";
-$icon     = "error";
-        elseif( ( $serviceInfo["service_package"] == 11 || $serviceInfo["service_package"] == 12 ) && !is_numeric($min) ):
-$error    = 1;
-$errorText= "Minimum order quantity cannot be empty";
-$icon     = "error";
-        elseif( ( $serviceInfo["service_package"] == 11 || $serviceInfo["service_package"] == 12 ) && !is_numeric($max) ):
-$error    = 1;
-$errorText= "Maximum order quantity cannot be empty";
-$icon     = "error";
-        elseif( ( $serviceInfo["service_package"] == 11 || $serviceInfo["service_package"] == 12 ) && $min > $max ):
-$error    = 1;
-$errorText= "Minimum order quantity cannot exceed the maximum order quantity";
-$icon     = "error";
-        elseif(  ( $serviceInfo["service_package"] == 14 || $serviceInfo["service_package"] == 15 ) && !is_numeric($autopost) ):
-$error    = 1;
-$errorText= "Post amount cannot be empty";
-$icon     = "error";
-        elseif(  ( $serviceInfo["service_package"] == 14 || $serviceInfo["service_package"] == 15 ) && !is_numeric($limited_min) ):
-$error    = 1;
-$errorText= "Order quantity cannot be empty";
-$icon     = "error";
-        elseif(  ( $serviceInfo["service_package"] == 14 || $serviceInfo["service_package"] == 15 ) && !is_numeric($autotime) ):
-$error    = 1;
-$errorText= "Package Time cannot be empty";
-$icon     = "error";
-        else:
-  $api=$conn->prepare("SELECT * FROM service_api WHERE id=:id "); $api->execute(array("id"=>$provider)); $api=$api->fetch(PDO::FETCH_ASSOC);
-  if( $mode == 1 ): $provider = 0; $service = 0; endif;
-  if( $mode == 2 && $api["api_type"] == 1 ):
-$smmapi   = new SMMApi(); $services = $smmapi->action(array('key' =>$api["api_key"],'action' =>'services'),$api["api_url"]); $balance = $smmapi->action(array('key' =>$api["api_key"],'action' =>'balance'),$api["api_url"]);
-  foreach ($services as $apiService):
-    if( $service == $apiService->service ):
-      $detail["min"]=$apiService->min;
-      $detail["max"]=$apiService->max;
-      $detail["rate"]=$apiService->rate;
-      $detail["currency"]=$balance->currency;
-      $detail=json_encode($detail);
-    endif;
-  endforeach;
-  else:
-$detail="";
-  endif;
-  if( $serviceInfo["service_package"] == 14 || $serviceInfo["service_package"] == 15 ): $min = $limited_min; $max = $min; $price = $limited_price; endif;
-  if( $serviceInfo["category_id"] != $category ): $row = $conn->query("SELECT * FROM services WHERE category_id='$category' ORDER BY service_line DESC LIMIT 1 ")->fetch(PDO::FETCH_ASSOC); $last_category=$serviceInfo["category_id"]; $last_line=$serviceInfo["service_line"]; $line= $row["service_line"] + 1; else: $line= $serviceInfo["service_line"]; endif;
-  $conn->beginTransaction();
-			// abone update işlem yeri
-  $update = $conn->prepare("UPDATE services SET 
-			service_speed=:speed, 
-cancelbutton=:cancelbutton, 
-show_refill=:show_refill, 
-			service_api=:api,
-			api_servicetype=:type, 
-			api_service=:api_service, 
-			api_detail=:detail,
-			category_id=:category, 
-			service_name=:name, 
-			service_price=:price, 
-			service_min=:min, 
-			service_max=:max, 
-			service_autotime=:autotime, 
-			service_autopost=:autopost,
-      name_lang=:name_lang,
-			service_secret=:secret,service_overflow=:overflow WHERE service_id=:id ");
-  $update = $update-> execute(array("id"=>route(3),"type"=>2,"speed"=>$speed,"detail"=>$detail,"api"=>$provider,"api_service"=>$service,"category"=>$category,"name"=>$name,"price"=>$price,"min"=>$min,"max"=>$max,"autotime"=>$autotime,"autopost"=>$autopost,"name_lang"=>$multiName,"secret"=>$secret,"cancelbutton"=>$cancelbutton,"show_refill"=>$show_refill,"overflow" => $service_overflow));
-  if( $update ):
-$conn->commit();
-$rows = $conn->prepare("SELECT * FROM services WHERE category_id=:c_id && service_line>=:line ");
-$rows->execute(array("c_id"=>$last_category,"line"=>$last_line ));
-$rows = $rows->fetchAll(PDO::FETCH_ASSOC);
-  foreach( $rows as $row ):
-    $update = $conn->prepare("UPDATE services SET service_line=:line WHERE service_id=:id ");
-    $update->execute(array("line"=>$row["service_line"]-1,"id"=>$row["service_id"] ));
-  endforeach;
-$error    = 1;
-$errorText= "Successful";
-if(strpos($_SERVER["HTTP_REFERER"],$_SERVER["HTTP_HOST"]) != false){
-$referrer = $_SERVER["HTTP_REFERER"];
-} else {
-$referrer =site_url("admin/services");
-}
-$icon     = "success";
-  else:
-$conn->rollBack();
-$error    = 1;
-$errorText= "Unsuccessful";
-$icon     = "error";
-  endif;
-        endif;
-        echo json_encode(["t"=>"error","m"=>$errorText,"s"=>$icon,"r"=>$referrer]);
-      endif;
-  elseif( $action == "service-active" ):
-    $service_id  = route(3);
-    if( countRow(["table"=>"services","where"=>["service_id"=>$service_id,"service_type"=>2]]) ):
-  if(strpos($_SERVER["HTTP_REFERER"],$_SERVER["HTTP_HOST"]) != false){
-header("Location:".$_SERVER["HTTP_REFERER"]); 
-} else {
-header("Location:".site_url("admin/services")); 
-}
-  
-  exit(); endif;
-    $update = $conn->prepare("UPDATE services SET service_type=:type WHERE service_id=:id ");
-    $update->execute(array("type"=>2,"id"=>$service_id));
-      if( $update ):
-        $_SESSION["client"]["data"]["success"]    = 1;
-        $_SESSION["client"]["data"]["successText"]= "Successful";
-//Create Updates
-$insert2= $conn->prepare("INSERT INTO updates SET service_id=:s_id, action=:action, description=:description, date=:date ");
-$insert2= $insert2->execute(array("s_id"=>$service_id,"action"=>"Activated","description"=>"","date"=>date("Y-m-d H:i:s") ));      else:
-        $_SESSION["client"]["data"]["error"]    = 1;
-        $_SESSION["client"]["data"]["errorText"]= "Unsuccessful";
-      endif;
-    if(strpos($_SERVER["HTTP_REFERER"],$_SERVER["HTTP_HOST"]) != false){
-header("Location:".$_SERVER["HTTP_REFERER"]); 
-} else {
-header("Location:".site_url("admin/services")); 
-}
-  elseif( $action == "service-deactive" ):
-    $service_id  = route(3);
-    if( countRow(["table"=>"services","where"=>["service_id"=>$service_id,"service_type"=>1]]) ):
-   if(strpos($_SERVER["HTTP_REFERER"],$_SERVER["HTTP_HOST"]) != false){
-header("Location:".$_SERVER["HTTP_REFERER"]); 
-} else {
-header("Location:".site_url("admin/services")); 
-}
-   endif;
-    $update = $conn->prepare("UPDATE services SET service_type=:type WHERE service_id=:id ");
-    $update->execute(array("type"=>1,"id"=>$service_id));
-      if( $update ):
-        $_SESSION["client"]["data"]["success"]    = 1;
-        $_SESSION["client"]["data"]["successText"]= "Successful";
-//Create Updates
- $insert2= $conn->prepare("INSERT INTO updates SET service_id=:s_id, action=:action, description=:description, date=:date ");
-$insert2= $insert2->execute(array("s_id"=>$service_id,"action"=>"Disabled","description"=>"","date"=>date("Y-m-d H:i:s") ));
-     else:
-        $_SESSION["client"]["data"]["error"]    = 1;
-        $_SESSION["client"]["data"]["errorText"]= "Unsuccessful";
-      endif;
-      if(strpos($_SERVER["HTTP_REFERER"],$_SERVER["HTTP_HOST"]) != false){
-header("Location:".$_SERVER["HTTP_REFERER"]); 
-} else {
-header("Location:".site_url("admin/services")); 
-}
 
 
 
-elseif( $action == "refill-active" ):
-    $service_id  = route(3);
-    if( countRow(["table"=>"services","where"=>["service_id"=>$service_id,"show_refill"=>true ]]) ):
-     if(strpos($_SERVER["HTTP_REFERER"],$_SERVER["HTTP_HOST"]) != false){
-header("Location:".$_SERVER["HTTP_REFERER"]); 
-} else {
-header("Location:".site_url("admin/services")); 
-}
-     
-     exit();
-     
-     endif;
-    $update = $conn->prepare("UPDATE services SET show_refill=:show_refill WHERE service_id=:id ");
-    $update->execute(array("show_refill"=>true,"id"=>$service_id));
-      if( $update ):
-        $_SESSION["client"]["data"]["success"]    = 1;
-        $_SESSION["client"]["data"]["successText"]= "Success";
-
-//Create updates 
-$insert2= $conn->prepare("INSERT INTO updates SET service_id=:s_id, action=:action, description=:description, date=:date ");
-$insert2= $insert2->execute(array("s_id"=>$service_id,"action"=>"Activated","description"=>"Refill Button has been activated","date"=>date("Y-m-d H:i:s") ));
-   
-      else:
-        $_SESSION["client"]["data"]["error"]    = 1;
-        $_SESSION["client"]["data"]["errorText"]= "Failed";
-      endif;
-    if(strpos($_SERVER["HTTP_REFERER"],$_SERVER["HTTP_HOST"]) != false){
-header("Location:".$_SERVER["HTTP_REFERER"]); 
-} else {
-header("Location:".site_url("admin/services")); 
-}
-  elseif( $action == "refill-deactive" ):
-    $service_id  = route(3);
-    if( countRow(["table"=>"services","where"=>["service_id"=>$service_id,"show_refill"=>false ]]) ): 
-   if(strpos($_SERVER["HTTP_REFERER"],$_SERVER["HTTP_HOST"]) != false){
-header("Location:".$_SERVER["HTTP_REFERER"]); 
-} else {
-header("Location:".site_url("admin/services")); 
-}
-   exit();
-   endif;
-    $update = $conn->prepare("UPDATE services SET show_refill=:show_refill WHERE service_id=:id ");
-    $update->execute(array("show_refill"=>"false","id"=>$service_id));
-      if( $update ):
-        $_SESSION["client"]["data"]["success"]    = 1;
-        $_SESSION["client"]["data"]["successText"]= "Success";
-//Create Updates
-$insert2= $conn->prepare("INSERT INTO updates SET service_id=:s_id, action=:action, description=:description, date=:date ");
-$insert2= $insert2->execute(array("s_id"=>$service_id,"action"=>"Disabled","description"=>"Refill Button has been disabled","date"=>date("Y-m-d H:i:s") ));
-   
-      else:
-        $_SESSION["client"]["data"]["error"]    = 1;
-        $_SESSION["client"]["data"]["errorText"]= "Failed";
-      endif;
-
-      if(strpos($_SERVER["HTTP_REFERER"],$_SERVER["HTTP_HOST"]) != false){
-header("Location:".$_SERVER["HTTP_REFERER"]); 
-} else {
-header("Location:".site_url("admin/services")); 
-}
-
-elseif( $action == "cancelbutton-active" ):
-    $service_id  = route(3);
-    if( countRow(["table"=>"services","where"=>["service_id"=>$service_id,"cancelbutton"=>1]]) ):
-     if(strpos($_SERVER["HTTP_REFERER"],$_SERVER["HTTP_HOST"]) != false){
-header("Location:".$_SERVER["HTTP_REFERER"]); 
-} else {
-header("Location:".site_url("admin/services")); 
-} 
-     
-     exit(); endif;
-    $update = $conn->prepare("UPDATE services SET cancelbutton=:cancelbutton WHERE service_id=:id ");
-    $update->execute(array("cancelbutton"=>1,"id"=>$service_id));
-      if( $update ):
-        $_SESSION["client"]["data"]["success"]    = 1;
-        $_SESSION["client"]["data"]["successText"]= "Success";
-//Create Updates
-$insert2= $conn->prepare("INSERT INTO updates SET service_id=:s_id, action=:action, description=:description, date=:date ");
-$insert2= $insert2->execute(array("s_id"=>$service_id,"action"=>"Activated","description"=>"Cancel Button has been activated","date"=>date("Y-m-d H:i:s") ));
-   
-      else:
-        $_SESSION["client"]["data"]["error"]    = 1;
-        $_SESSION["client"]["data"]["errorText"]= "Failed";
-      endif;
-   if(strpos($_SERVER["HTTP_REFERER"],$_SERVER["HTTP_HOST"]) != false){
-header("Location:".$_SERVER["HTTP_REFERER"]); 
-} else {
-header("Location:".site_url("admin/services")); 
-}
-  elseif( $action == "cancelbutton-deactive" ):
-    $service_id  = route(3);
-    if( countRow(["table"=>"services","where"=>["service_id"=>$service_id,"cancelbutton"=>2]]) ):
-   if(strpos($_SERVER["HTTP_REFERER"],$_SERVER["HTTP_HOST"]) != false){
-header("Location:".$_SERVER["HTTP_REFERER"]); 
-} else {
-header("Location:".site_url("admin/services")); 
-}
-   
-   exit(); endif;
-    $update = $conn->prepare("UPDATE services SET cancelbutton=:cancelbutton WHERE service_id=:id ");
-    $update->execute(array("cancelbutton"=>2,"id"=>$service_id));
-      if( $update ):
-        $_SESSION["client"]["data"]["success"]    = 1;
-        $_SESSION["client"]["data"]["successText"]= "Success";
-//Create Updates
-$insert2= $conn->prepare("INSERT INTO updates SET service_id=:s_id, action=:action, description=:description, date=:date ");
-$insert2= $insert2->execute(array("s_id"=>$service_id,"action"=>"Disabled","description"=>"Cancel Button has been disabled","date"=>date("Y-m-d H:i:s") ));
-   
-      else:
-        $_SESSION["client"]["data"]["error"]    = 1;
-        $_SESSION["client"]["data"]["errorText"]= "Failed";
-      endif;
-
-      if(strpos($_SERVER["HTTP_REFERER"],$_SERVER["HTTP_HOST"]) != false){
-header("Location:".$_SERVER["HTTP_REFERER"]); 
-} else {
-header("Location:".site_url("admin/services")); 
-}
 
 
-  elseif( $action == "del_price" ):
-    $service_id  = route(3);
-    if( !countRow(["table"=>"clients_price","where"=>["service_id"=>$service_id]]) ): $_SESSION["client"]["data"]["error"]    = 1; $_SESSION["client"]["data"]["errorText"]= "Servise ait fiyatlandırma bulunamadı."; 
-  if(strpos($_SERVER["HTTP_REFERER"],$_SERVER["HTTP_HOST"]) != false){
-header("Location:".$_SERVER["HTTP_REFERER"]); 
-} else {
-header("Location:".site_url("admin/services")); 
-}
-  
-  exit(); endif;
-    $delete = $conn->prepare("DELETE FROM clients_price  WHERE service_id=:id ");
-    $delete->execute(array("id"=>$service_id));
-      if( $delete ):
-        $_SESSION["client"]["data"]["success"]    = 1;
-        $_SESSION["client"]["data"]["successText"]= "Successful";
-      else:
-        $_SESSION["client"]["data"]["error"]    = 1;
-        $_SESSION["client"]["data"]["errorText"]= "Unsuccessful";
-      endif;
-    if(strpos($_SERVER["HTTP_REFERER"],$_SERVER["HTTP_HOST"]) != false){
-header("Location:".$_SERVER["HTTP_REFERER"]); 
-} else {
-header("Location:".site_url("admin/services")); 
-};
-  elseif( $action == "category-active" ):
-    $category_id  = route(3);
-    $update = $conn->prepare("UPDATE categories SET category_type=:type WHERE category_id=:id ");
-    $update->execute(array("type"=>2,"id"=>$category_id));
-      if( $update ):
-        $_SESSION["client"]["data"]["success"]    = 1;
-        $_SESSION["client"]["data"]["successText"]= "Successful";
-      else:
-        $_SESSION["client"]["data"]["error"]    = 1;
-        $_SESSION["client"]["data"]["errorText"]= "Unsuccessful";
-      endif;
-    if(strpos($_SERVER["HTTP_REFERER"],$_SERVER["HTTP_HOST"]) != false){
-header("Location:".$_SERVER["HTTP_REFERER"]); 
-} else {
-header("Location:".site_url("admin/services")); 
-}
-  elseif( $action == "category-deactive" ):
-    $category_id  = route(3);
-    $update = $conn->prepare("UPDATE categories SET category_type=:type WHERE category_id=:id ");
-    $update->execute(array("type"=>1,"id"=>$category_id));
-      if( $update ):
-        $_SESSION["client"]["data"]["success"]    = 1;
-        $_SESSION["client"]["data"]["successText"]= "Successful";
-      else:
-        $_SESSION["client"]["data"]["error"]    = 1;
-        $_SESSION["client"]["data"]["errorText"]= "Unsuccessful";
-      endif;
-      if(strpos($_SERVER["HTTP_REFERER"],$_SERVER["HTTP_HOST"]) != false){
-header("Location:".$_SERVER["HTTP_REFERER"]); 
-} else {
-header("Location:".site_url("admin/services")); 
-}
- elseif( $action == "del_category" ):
-   foreach ($services as $id => $value):
-      $delete = $conn->prepare("DELETE FROM categories WHERE category_id=:id ");
-      $delete->execute(array("id"=>$id));
-    endforeach;
-if(strpos($_SERVER["HTTP_REFERER"],$_SERVER["HTTP_HOST"]) != false){
-header("Location:".$_SERVER["HTTP_REFERER"]); 
-} else {
-header("Location:".site_url("admin/services")); 
-}
-  elseif( $action == "multi-action" ):
-    $services = $_POST["service"];
-    $action   = $_POST["bulkStatus"];
-      if( $action ==  "active" ):
-        foreach ($services as $id => $value):
-$update = $conn->prepare("UPDATE services SET service_type=:type WHERE service_id=:id ");
-$update->execute(array("type"=>2,"id"=>$id));
-//Create Updates
-$insert2= $conn->prepare("INSERT INTO updates SET service_id=:s_id, action=:action, description=:description, date=:date ");
-$insert2= $insert2->execute(array("s_id"=>$id,"action"=>"Activated","description"=>"","date"=>date("Y-m-d H:i:s") ));      
-  
-        endforeach;
-      elseif( $action ==  "deactive" ):
-        foreach ($services as $id => $value):
-$update = $conn->prepare("UPDATE services SET service_type=:type WHERE service_id=:id ");
-$update->execute(array("type"=>1,"id"=>$id));
 
-//Create Updates
- $insert2= $conn->prepare("INSERT INTO updates SET service_id=:s_id, action=:action, description=:description, date=:date ");
-$insert2= $insert2->execute(array("s_id"=>$id,"action"=>"Disabled","description"=>"","date"=>date("Y-m-d H:i:s") ));
-
-        endforeach;
-      elseif( $action ==  "secret" ):
-        foreach ($services as $id => $value):
-$update = $conn->prepare("UPDATE services SET service_secret=:secret WHERE service_id=:id ");
-$update->execute(array("secret"=>1,"id"=>$id));
-        endforeach;
-      elseif( $action ==  "desecret" ):
-        foreach ($services as $id => $value):
-$update = $conn->prepare("UPDATE services SET service_secret=:secret WHERE service_id=:id ");
-$update->execute(array("secret"=>2,"id"=>$id));
-        endforeach;
-elseif( $action ==  "refill-active" ):
-        foreach ($services as $id => $value):
-$update = $conn->prepare("UPDATE services SET show_refill=:refill WHERE service_id=:id ");
-$update->execute(array("refill"=>"true","id"=>$id));
-//Create updates 
-$insert2= $conn->prepare("INSERT INTO updates SET service_id=:s_id, action=:action, description=:description, date=:date ");
-$insert2= $insert2->execute(array("s_id"=>$id,"action"=>"Activated","description"=>"Refill Button has been activated","date"=>date("Y-m-d H:i:s") ));
-
-        endforeach;
-elseif( $action ==  "refill-inactive" ):
-        foreach ($services as $id => $value):
-$update = $conn->prepare("UPDATE services SET show_refill=:refill WHERE service_id=:id ");
-$update->execute(array("refill"=>"false","id"=>$id));
-//Create Updates
-$insert2= $conn->prepare("INSERT INTO updates SET service_id=:s_id, action=:action, description=:description, date=:date ");
-$insert2= $insert2->execute(array("s_id"=>$id,"action"=>"Disabled","description"=>"Refill Button has been disabled","date"=>date("Y-m-d H:i:s") ));
-        endforeach;
-elseif( $action ==  "cancel-active" ):
-        foreach ($services as $id => $value):
-$update = $conn->prepare("UPDATE services SET cancelbutton=:button WHERE service_id=:id ");
-$update->execute(array("button"=>"1","id"=>$id));
-
-//Create Updates
-$insert2= $conn->prepare("INSERT INTO updates SET service_id=:s_id, action=:action, description=:description, date=:date ");
-$insert2= $insert2->execute(array("s_id"=>$id,"action"=>"Activated","description"=>"Cancel Button has been activated","date"=>date("Y-m-d H:i:s") ));
-
-        endforeach;
-elseif( $action ==  "cancel-inactive" ):
-        foreach ($services as $id => $value):
-$update = $conn->prepare("UPDATE services SET cancelbutton=:button WHERE service_id=:id ");
-$update->execute(array("button"=>"2","id"=>$id));
-//Create Updates
-$insert2= $conn->prepare("INSERT INTO updates SET service_id=:s_id, action=:action, description=:description, date=:date ");
-$insert2= $insert2->execute(array("s_id"=>$id,"action"=>"Disabled","description"=>"Cancel Button has been disabled","date"=>date("Y-m-d H:i:s") ));
-        endforeach;
+    <div class="modal modal-center fade" id="confirmChange" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" data-backdrop="static">
+        <div class="modal-dialog modal-dialog-center" role="document">
+            <div class="modal-content">
+                <div class="modal-body text-center">
+<h4>Are you sure you want to update the status?</h4>
+<div align="center">
+    <a class="btn btn-primary" href="" id="confirmYes">Yes</a>
+    <button type="button" class="btn btn-default" data-dismiss="modal">No</button>
+</div>
+                </div>
+            </div>
+        </div>
+    </div>
 
 
-elseif( $action ==  "del-cat" ):
-        foreach ($services as $id => $value):
-$delete = $conn->prepare("DELETE FROM categories WHERE category_id=:id ");
-    $delete->execute(array("id"=>$id));
-        endforeach;
-
-elseif( $action == "refill-active" ):
-    $service_id  = route(3);
-    if( countRow(["table"=>"services","where"=>["service_id"=>$service_id,"show_refill"=>1]]) ):
-        if(strpos($_SERVER["HTTP_REFERER"],$_SERVER["HTTP_HOST"]) != false){
-header("Location:".$_SERVER["HTTP_REFERER"]); 
-} else {
-header("Location:".site_url("admin/services")); 
-}
-        exit(); endif;
-    $update = $conn->prepare("UPDATE services SET show_refill=:show_refill WHERE service_id=:id ");
-    $update->execute(array("show_refill"=>1,"id"=>$service_id));
-      if( $update ):
-        $_SESSION["client"]["data"]["success"]    = 1;
-        $_SESSION["client"]["data"]["successText"]= "Success";
-      else:
-        $_SESSION["client"]["data"]["error"]    = 1;
-        $_SESSION["client"]["data"]["errorText"]= "Failed";
-      endif;
-    if(strpos($_SERVER["HTTP_REFERER"],$_SERVER["HTTP_HOST"]) != false){
-header("Location:".$_SERVER["HTTP_REFERER"]); 
-} else {
-header("Location:".site_url("admin/services")); 
-}
-  elseif( $action == "refill-deactive" ):
-    $service_id  = route(3);
-    if( countRow(["table"=>"services","where"=>["service_id"=>$service_id,"show_refill"=>2]]) ): 
-   if(strpos($_SERVER["HTTP_REFERER"],$_SERVER["HTTP_HOST"]) != false){
-header("Location:".$_SERVER["HTTP_REFERER"]); 
-} else {
-header("Location:".site_url("admin/services")); 
-}
-   
-   exit();
-   
-   endif;
-    $update = $conn->prepare("UPDATE services SET show_refill=:show_refill WHERE service_id=:id ");
-    $update->execute(array("show_refill"=> "false" ,"id"=>$service_id));
-      if( $update ):
-        $_SESSION["client"]["data"]["success"]    = 1;
-        $_SESSION["client"]["data"]["successText"]= "Success";
-      else:
-        $_SESSION["client"]["data"]["error"]    = 1;
-        $_SESSION["client"]["data"]["errorText"]= "Failed";
-      endif;
-
-      if(strpos($_SERVER["HTTP_REFERER"],$_SERVER["HTTP_HOST"]) != false){
-header("Location:".$_SERVER["HTTP_REFERER"]); 
-} else {
-header("Location:".site_url("admin/services")); 
-}
-
-elseif( $action == "cancelbutton-active" ):
-    $service_id  = route(3);
-    if( countRow(["table"=>"services","where"=>["service_id"=>$service_id,"cancelbutton"=>1]]) ): 
-if(strpos($_SERVER["HTTP_REFERER"],$_SERVER["HTTP_HOST"]) != false){
-header("Location:".$_SERVER["HTTP_REFERER"]); 
-} else {
-header("Location:".site_url("admin/services")); 
-} 
-        exit(); endif;
-    $update = $conn->prepare("UPDATE services SET cancelbutton=:cancelbutton WHERE service_id=:id ");
-    $update->execute(array("cancelbutton"=>1,"id"=>$service_id));
-      if( $update ):
-        $_SESSION["client"]["data"]["success"]    = 1;
-        $_SESSION["client"]["data"]["successText"]= "Success";
-      else:
-        $_SESSION["client"]["data"]["error"]    = 1;
-        $_SESSION["client"]["data"]["errorText"]= "Failed";
-      endif;
-    if(strpos($_SERVER["HTTP_REFERER"],$_SERVER["HTTP_HOST"]) != false){
-header("Location:".$_SERVER["HTTP_REFERER"]); 
-} else {
-header("Location:".site_url("admin/services")); 
-}
-  elseif( $action == "cancelbutton-deactive" ):
-    $service_id  = route(3);
-    if( countRow(["table"=>"services","where"=>["service_id"=>$service_id,"cancelbutton"=>2]]) ): 
-if(strpos($_SERVER["HTTP_REFERER"],$_SERVER["HTTP_HOST"]) != false){
-header("Location:".$_SERVER["HTTP_REFERER"]); 
-} else {
-header("Location:".site_url("admin/services")); 
-}
-exit(); endif;
-    $update = $conn->prepare("UPDATE services SET cancelbutton=:cancelbutton WHERE service_id=:id ");
-    $update->execute(array("cancelbutton"=>2,"id"=>$service_id));
-      if( $update ):
-        $_SESSION["client"]["data"]["success"]    = 1;
-        $_SESSION["client"]["data"]["successText"]= "Success";
-      else:
-        $_SESSION["client"]["data"]["error"]    = 1;
-        $_SESSION["client"]["data"]["errorText"]= "Failed";
-      endif;
-
-      if(strpos($_SERVER["HTTP_REFERER"],$_SERVER["HTTP_HOST"]) != false){
-header("Location:".$_SERVER["HTTP_REFERER"]); 
-} else {
-header("Location:".site_url("admin/services")); 
-}
-      elseif( $action ==  "del_price" ):
-        foreach ($services as $id => $value):
-$delete = $conn->prepare("DELETE FROM clients_price  WHERE service_id=:id ");
-$delete->execute(array("id"=>$id));
-        endforeach;
-        elseif( $action == "del_service" ):
- foreach ($services as $id => $value):
-      $delete = $conn->prepare("UPDATE services SET service_deleted=:deleted WHERE service_id=:id ");
-      $delete->execute(array("deleted"=>1,"id"=>$id));
-    endforeach;
-      endif;
-    if(strpos($_SERVER["HTTP_REFERER"],$_SERVER["HTTP_HOST"]) != false){
-header("Location:".$_SERVER["HTTP_REFERER"]); 
-} else {
-header("Location:".site_url("admin/services")); 
-}
-elseif( $action == "get_services_add" ):
-
-
-$format = $general["currency_format"];
-    $services     = $_POST["servicesList"];
-$percentage_increase = $_POST["percent"];
-    $provider_id  = $_POST["provider"];
-$language   = $conn->prepare("SELECT * FROM languages WHERE default_language=:default");
-        $language->execute(array("default"=>1));
-        $language   = $language->fetch(PDO::FETCH_ASSOC);
-
-    $smmapi       = new SMMApi();
-    $provider     = $conn->prepare("SELECT * FROM service_api WHERE id=:id");
-    $provider     ->execute(array("id"=>$provider_id));
-    $cat = intval(@$_POST["category"]);
-    $provider     = $provider->fetch(PDO::FETCH_ASSOC);
-    $apiServices  = $smmapi->action(array('key'=>$provider["api_key"],'action'=>'services'),$provider["api_url"]);
-    $balance      = $smmapi->action(array('key'=>$provider["api_key"],'action'=>'balance'),$provider["api_url"]);
-      if( count($services) ):
-        foreach ($services as $service => $price):
-foreach ($apiServices as $apiService):
-  if( $service == $apiService->service && $service != 0 ):
-$detail["min"]=$apiService->min;
-$detail["max"]=$apiService->max;
-$detail["rate"]=$apiService->rate;
-$detail["refill"]=$apiService->refill;
-$detail["desc"]=$apiService->desc;
-$detail["currency"]=$balance->currency;
-
-$package= serviceTypeGetList($apiService->type);
-$name2 = $apiService->name;
-
-
-$multidetail[$language["language_code"]]= $name2;
-$multiName=json_encode($multidetail);
-
-
-if($apiService->refill  == "1") {
-   $apiService->refill = "true";
-  }
-if($apiService->refill  == "2") {
-   $apiService->refill = "false";
-  }
-if (empty($apiService->refill)) {
-   $apiService->refill = "false";
-  }
-
-if (empty($apiService->desc)) {
-   $apiService->desc = "$apiService->package_description";
-  }
-  $multidesc[$language["language_code"]]=$apiService->desc;
-$multiDesc=json_encode($multidesc);
-  if( $currency["site_currency"] == "USD" ):    
-  
-     
-if($provider["currency"] == "IR"){
-    $price = $price;    
-}else{
-    $price = $price*0.0073;
-}
-  
-
-  if( $package == 11 ):
-      
-    $insert = $conn->prepare("INSERT INTO services SET service_api=:api, name_lang=:multiName, api_service=:api_service, category_id=:category, service_line=:line, service_type=:type, service_package=:package, service_name=:name, service_price=:price, service_min=:min, service_max=:max, service_description=:desc,  service_profit=:profit, description_lang=:multi ");
-    $insert = $insert-> execute(array("api"=>$provider_id,"api_service"=>$service,"detail"=>json_encode($detail),"category"=>$cat,"line"=>1,"type"=>2,"package"=>$package,"name"=>$name2,"price"=> number_format($price, $format, '.', ''),"min"=>$apiService->min,"max"=>$apiService->max,"desc"=>$apiService->desc, "profit"=>$percentage_increase,"multiName"=>$multiName,"multi"=>$multiDesc));
-  else:
-      $package = $package==""?1:$package;
-     
-    $insert = $conn->prepare("INSERT INTO services SET service_api=:api, api_service=:api_service, api_detail=:detail, category_id=:category, service_line=:line, service_type=:type, service_package=:package, service_name=:name, service_price=:price, service_min=:min, service_max=:max, name_lang=:multiName,  service_description=:desc , show_refill=:refill,  service_profit=:profit, description_lang=:multi ");
-    $insert = $insert-> execute(array("api"=>$provider_id,"api_service"=>$service,"detail"=>json_encode($detail),"category"=>$cat,"line"=>1,"type"=>2,"package"=>$package,"name"=>$apiService->name,"price"=>number_format($price, $format, '.', '') ,"min"=>$apiService->min,"max"=>$apiService->max,"desc"=>$apiService->desc,"refill"=>$apiService->refill, "profit"=>$percentage_increase,"multiName"=>$multiName,"multi"=>$multiDesc));
-  endif;
-  
-  else:
-  
-  if($provider["currency"] == "INR"){
-      $foo = $price*$conv_rate;
-      $formatted_price = number_format((float)$foo, 2, '.', ''); 
-  }else{
-      $formatted_price = $price;
-  }
-  
-  
-  if( $package == 11 ):
-      
-    $insert = $conn->prepare("INSERT INTO services SET service_api=:api, api_service=:api_service, category_id=:category, service_line=:line, service_type=:type, service_package=:package, service_name=:name, service_price=:price, service_min=:min, service_max=:max,  service_description=:desc , show_refill=:refill,  service_profit=:profit, name_lang=:multiName, description_lang=:multi ");
-    $insert = $insert-> execute(array("api"=>$provider_id,"api_service"=>$service,"detail"=>json_encode($detail),"category"=>$cat,"line"=>1,"type"=>2,"package"=>$package,"name"=>$name2,"price"=>number_format($price, $format, '.', ''),"min"=>$apiService->min,"max"=>$apiService->max,"desc"=>$apiService->desc,"refill"=>$apiService->refill, "profit"=>$percentage_increase,"multiName"=>$multiName,"multi"=>$multiDesc));
-  else:
-      $package = $package==""?1:$package;
-     
-    $insert = $conn->prepare("INSERT INTO services SET service_api=:api, api_service=:api_service, api_detail=:detail, category_id=:category, service_line=:line, service_type=:type, service_package=:package, service_name=:name, service_price=:price, service_min=:min, service_max=:max,  service_description=:desc , show_refill=:refill,  service_profit=:profit, name_lang=:multiName, description_lang=:multi  ");
-    $insert = $insert-> execute(array("api"=>$provider_id,"api_service"=>$service,"detail"=>json_encode($detail),"category"=>$cat,"line"=>1,"type"=>2,"package"=>$package,"name"=>$apiService->name,"price"=>number_format($price, $format, '.', ''),"min"=>$apiService->min,"max"=>$apiService->max,"desc"=>$apiService->desc,"refill"=>$apiService->refill, "profit"=>$percentage_increase,"multiName"=>$multiName,"multi"=>$multiDesc));
-  endif;
-  endif;
-  endif;
-endforeach;
-        endforeach;
-echo json_encode(["t"=>"error","m"=>"Success","s"=>"success","r"=>site_url("admin/services"),"time"=>0]);
-else:
-echo json_encode(["t"=>"error","m"=>"Please select at least 1 service you want to add","s"=>"error"]);
-      endif;
-  endif;
-     if( route(2) == "delehh" ):
-    $id     = route(3);
-    $delete = $conn->prepare("DELETE FROM services WHERE service_id=:id ");
-    $delete->execute(array("id"=>$id));
-    if(strpos($_SERVER["HTTP_REFERER"],$_SERVER["HTTP_HOST"]) != false){
-header("Location:".$_SERVER["HTTP_REFERER"]); 
-} else {
-header("Location:".site_url("admin/services")); 
-};
-  endif;
-   
-    if( $action == "get_service_add" ):
-
-$format = $general["currency_format"];
-    $services     = $_POST["servicesList"];
-    $provider_id  = $_POST["provider"];
-    $percentage_increase = $_POST["percent"];
- 
-    $currency     = $conn->prepare("SELECT * FROM settings WHERE id=:id");
-    $currency     ->execute(array("id"=>"1"));
-    $currency     = $currency->fetch(PDO::FETCH_ASSOC);
-    $conv_rate = $currency["dolar_charge"];
-    $smmapi       = new SMMApi();
-    $provider     = $conn->prepare("SELECT * FROM service_api WHERE id=:id");
-    $provider     ->execute(array("id"=>$provider_id));
-    $provider     = $provider->fetch(PDO::FETCH_ASSOC);
-$language   = $conn->prepare("SELECT * FROM languages WHERE default_language=:default");
-        $language->execute(array("default"=>1));
-        $language   = $language->fetch(PDO::FETCH_ASSOC);
-
-    $apiServices  = $smmapi->action(array('key'=>$provider["api_key"],'action'=>'services'),$provider["api_url"]);
-    $balance      = $smmapi->action(array('key'=>$provider["api_key"],'action'=>'balance'),$provider["api_url"]);
-      if( count($services) ):
-        foreach ($services as $service => $price):
-foreach ($apiServices as $apiService):
-  
-  // die();
-  if( $service == $apiService->service && $service != 0 ):
-  
-  $check_category = $conn->prepare("SELECT * FROM categories WHERE category_name=:name");
-  $check_category->execute(array("name"=>$apiService->category));
-  $check_category = $check_category->fetch(PDO::FETCH_ASSOC);
-  if(!empty($check_category)){
-      $cat = $check_category["category_id"];
-  }else{
-      $check_category = $conn->prepare("SELECT * FROM categories ORDER BY category_line DESC LIMIT 1");
-      $check_category->execute();
-      $check_category = $check_category->fetch(PDO::FETCH_ASSOC);
-      $insertcat = $conn->prepare("INSERT INTO categories SET category_name=:name, category_line=:line, category_type=:type, category_secret=:secret, category_icon=:icon, is_refill=:refill ");
-      $insertcat = $insertcat->execute(array("name"=>$apiService->category,"line"=>$check_category["category_line"]+1,"type"=>"2","secret"=>"2","icon"=>"","refill"=>"false" ));
-      $cat = $conn->lastInsertId();
-  }    
-$detail["min"]=$apiService->min;
-$detail["max"]=$apiService->max;
-$detail["rate"]=$apiService->rate;
-$detail["refill"]=$apiService->refill;
-$detail["currency"]=$balance->currency;
-$package= serviceTypeGetList($apiService->type);
-$name2 = $apiService->name;
-$multidetail[$language["language_code"]]= $name2;
-$multiName=json_encode($multidetail);
-
-if($apiService->refill  == "1") {
-   $apiService->refill = "true";
-  }
-if($apiService->refill  == "2") {
-   $apiService->refill = "false";
-  }
-
-if (empty($apiService->refill)) {
-   $apiService->refill = "false";
-  }
-if (empty($apiService->desc)) {
-   $apiService->desc = "$apiService->api_package_description";
-  }
-$multidesc[$language["language_code"]]=$apiService->desc;
-$multiDesc=json_encode($multidesc);
-
- if( $currency["site_currency"] == "INR" ):    
-  
-     
-if($provider["currency"] == "INR"){
-    $price = $price;    
-}else{
-    $price = $price*$conv_rate;
-}
-  
-  if( $package == 11 ):
-      
-    $insert = $conn->prepare("INSERT INTO services SET service_api=:api, api_service=:api_service, category_id=:category, service_line=:line, service_type=:type, service_package=:package, service_name=:name, service_price=:price, service_min=:min, service_max=:max,  service_description=:desc,  service_profit=:profit , show_refill=:refill, name_lang=:multiName, description_lang=:multi ");
-    $insert = $insert-> execute(array("api"=>$provider_id,"api_service"=>$service,"detail"=>json_encode($detail),"category"=>$cat,"line"=>1,"type"=>2,"package"=>$package,"name"=>$name2,"price"=>number_format($price, $format, '.', ''),"min"=>$apiService->min,"max"=>$apiService->max,"desc"=>$apiService->desc,"refill"=>$apiService->refill, "profit"=>$percentage_increase,"multiName"=>$multiName,"multi"=>$multiDesc));
-  else:
-      $package = $package==""?1:$package;
-     
-    $insert = $conn->prepare("INSERT INTO services SET service_api=:api, api_service=:api_service, api_detail=:detail, category_id=:category, service_line=:line, service_type=:type, service_package=:package, service_name=:name, service_price=:price, service_min=:min, service_max=:max,  service_description=:desc , show_refill=:refill,  service_profit=:profit, name_lang=:multiName, description_lang=:multi  ");
-    $insert = $insert-> execute(array("api"=>$provider_id,"api_service"=>$service,"detail"=>json_encode($detail),"category"=>$cat,"line"=>1,"type"=>2,"package"=>$package,"name"=>$apiService->name,"price"=>number_format($price, $format, '.', ''),"min"=>$apiService->min,"max"=>$apiService->max,"desc"=>$apiService->desc,"refill"=>$apiService->refill, "profit"=>$percentage_increase,"multiName"=>$multiName,"multi"=>$multiDesc));
-  endif;
-  
-  else:
-  
-  if($provider["currency"] == "INR"){
-      $foo = $price/$conv_rate;
-      $formatted_price = number_format((float)$foo, 2, '.', ''); 
-  }else{
-      $formatted_price = $price;
-  }
-  
-  
-  if( $package == 11 ):
-      
-    $insert = $conn->prepare("INSERT INTO services SET service_api=:api, api_service=:api_service, category_id=:category, service_line=:line, service_type=:type, service_package=:package, service_name=:name, service_price=:price, service_min=:min, service_max=:max,  service_description=:desc , show_refill=:refill,  service_profit=:profit, name_lang=:multiName, description_lang=:multi ");
-    $insert = $insert-> execute(array("api"=>$provider_id,"api_service"=>$service,"detail"=>json_encode($detail),"category"=>$cat,"line"=>1,"type"=>2,"package"=>$package,"name"=>$name2,"price"=>number_format($price, $format, '.', ''),"min"=>$apiService->min,"max"=>$apiService->max,"desc"=>$apiService->desc,"refill"=>$apiService->refill, "profit"=>$percentage_increase,"multiName"=>$multiName,"multi"=>$multiDesc));
-  else:
-      $package = $package==""?1:$package;
-     
-    $insert = $conn->prepare("INSERT INTO services SET service_api=:api, api_service=:api_service, api_detail=:detail, category_id=:category, service_line=:line, service_type=:type, service_package=:package, service_name=:name, service_price=:price, service_min=:min, service_max=:max,  service_description=:desc , show_refill=:refill,  service_profit=:profit, name_lang=:multiName, description_lang=:multi ");
-    $insert = $insert-> execute(array("api"=>$provider_id,"api_service"=>$service,"detail"=>json_encode($detail),"category"=>$cat,"line"=>1,"type"=>2,"package"=>$package,"name"=>$apiService->name,"price"=>number_format($price, $format, '.', ''),"min"=>$apiService->min,"max"=>$apiService->max,"desc"=>$apiService->desc,"refill"=>$apiService->refill, "profit"=>$percentage_increase,"multiName"=>$multiName,"multi"=>$multiDesc));
-  endif;
-  endif;
-  endif;
-endforeach;
-        endforeach;
-        echo json_encode(["t"=>"error","m"=>"Success","s"=>"success","r"=>site_url("admin/services"),"time"=>0]);
-      else:
-        echo json_encode(["t"=>"error","m"=>"
-Please select at least 1 service you want to add","s"=>"error"]);
-      endif;
-  endif;
-  
-   if( route(2) == "delete" ):
-    $id     = route(3);
-    $delete = $conn->prepare("UPDATE services SET service_deleted=:deleted WHERE service_id=:id ");
-    $delete->execute(array("deleted"=> 1,"id"=>$id));
-    if(strpos($_SERVER["HTTP_REFERER"],$_SERVER["HTTP_HOST"]) != false){
-header("Location:".$_SERVER["HTTP_REFERER"]); 
-} else {
-header("Location:".site_url("admin/services")); 
-}
-  endif;
-  
-
-
-  
-
-   
-if( route(2) == "del_category" ):
-    $id     = route(3);
-    $delete = $conn->prepare("UPDATE categories SET category_deleted=:deleted WHERE category_id=:id ");
-    $delete->execute(array("deleted"=>1,"id"=>$id));
-    if(strpos($_SERVER["HTTP_REFERER"],$_SERVER["HTTP_HOST"]) != false){
-header("Location:".$_SERVER["HTTP_REFERER"]); 
-} else {
-header("Location:".site_url("admin/services")); 
-}
-  endif;
-
-  
+    <?php include 'footer.php'; ?>

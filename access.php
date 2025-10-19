@@ -1,10 +1,12 @@
-<?php
-if(!defined('BASEPATH')) {
-   die('Direct access to the script is not allowed');
-}
-if( $admin["access"]["admin_access"] != 1  ){
-    header("Location:".site_url());
-    exit();
-}
-require admin_view('access');
-?>
+<div class="col-md-8">
+   <div class="panel panel-default">
+      <div class="panel-body">
+        <div class="col-md-9" style="margin:50px auto">
+          <b style="font-size:20px;">You are not authorized to access this page.</b>
+        </div>
+        <div class="col-md-3">
+          <i class="fa fa-exclamation-triangle" style="font-size:125px;color:red;"></i>
+        </div>
+      </div>
+   </div>
+</div>

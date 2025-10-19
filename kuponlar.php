@@ -1,104 +1,74 @@
-<?php
-if(!defined('BASEPATH')) {
-   die('Direct access to the script is not allowed');
-}
-
-  if( $admin["access"]["coupon"] != 1  ):
-    header("Location:".site_url("admin"));
-    exit();
-  endif;
-
-  if( $_SESSION["client"]["data"] ):
-    $data = $_SESSION["client"]["data"];
-    foreach ($data as $key => $value) {
-      $$key = $value;
-    }
-    unset($_SESSION["client"]);
-  endif;
-
-  if( !route(2) ):
-    $page   = 1;
-  elseif( is_numeric(route(2)) ):
-    $page   = route(2);
-  elseif( !is_numeric(route(2)) ):
-    $action = route(2);
-  endif;
-
-  if( empty($action) ):
-      
-    $kuponlar        = $conn->prepare("SELECT * FROM kuponlar ");
-    $kuponlar        -> execute(array());
-    $kuponlar        = $kuponlar->fetchAll(PDO::FETCH_ASSOC);
-    $kupon_kullananlar        = $conn->prepare("SELECT * FROM kupon_kullananlar ");
-    $kupon_kullananlar        -> execute(array());
-    $kupon_kullananlar        = $kupon_kullananlar->fetchAll(PDO::FETCH_ASSOC);
-    require admin_view('kuponlar');
-	
-	
-	
-	
-	elseif( $action == "delete" ):
-	
-	if( $_POST ):
-		 
-		 foreach ($_POST as $key => $value) {
-			$$key = $value;
-		  }
-		  
-		  
-		  
-		  
-		   $delete = $conn->prepare("DELETE FROM kuponlar WHERE id=:kupon_id");
-          $delete->execute(array("kupon_id"=>$kupon_id));
-            if( $delete ):
-			
-              header("Location:".site_url("admin/kuponlar"));
-            else:
-			
-              header("Location:".site_url("admin/kuponlar"));
-            endif;
-			
-			
-	  
-	endif;
-	
-	
-  elseif( $action == "new" ):
-    if( $_POST ):
-      foreach ($_POST as $key => $value) {
-        $$key = $value;
-      }
-	  
-	  
-	  
-	    $stmt = $conn->prepare("SELECT count(*) FROM kuponlar WHERE kuponadi = ?");
-		$stmt->execute([$kuponadi]);
-		$count = $stmt->fetchColumn();
+<?php include 'header.php'; ?>
 
 
-      if($count>0):
-        $error    = 1;
-        $errorText= "Bu kupon adı mevcut";
-        $icon     = "error";
-      else:
-          $conn->beginTransaction();
-          $insert = $conn->prepare("INSERT INTO kuponlar SET kuponadi=:kuponadi, adet=:adet, tutar=:tutar");
-          $insert = $insert->execute(array("kuponadi"=>$kuponadi,"adet"=>$adet,"tutar"=>$tutar));
-          
-          if( $insert ):
-            $conn->commit();
-            $referrer = site_url("admin/kuponlar");
-            $error    = 1;
-            $errorText= "Success";
-            $icon     = "success";
-          else:
-            $conn->rollBack();
-            $error    = 1;
-            $errorText= "Failed";
-            $icon     = "error";
-          endif;
-      endif;
-      echo json_encode(["t"=>"error","m"=>$errorText,"s"=>$icon,"r"=>$referrer]);
-    
-    endif;
-  endif;
+<div class="container-fluid">
+  <div class="row">    
+   <div class=" col-md-12">
+   <ul class="nav nav-tabs">
+      <li class="p-b"><button type="button" class="btn btn-default" data-toggle="modal" data-target="#modalDiv" data-action="yeni_kupon">Create Coupon</button></li>
+     
+   </ul>
+   
+   <table class="table report-table" style="border:1px solid #ddd">
+      <thead>
+         <tr>
+           
+           
+            <th width="33%">Coupon Code</th>
+            <th width="15%">Peice</th>
+            <th width="33%">Amount</th>
+            <th></th>
+         </tr>
+      </thead>
+      <form id="changebulkForm" action="<?php echo site_url("admin/kuponlar/delete") ?>" method="post" onsubmit="return confirm('Do you want to delete it?');">
+        <tbody>
+          <?php foreach($kuponlar as $kupon ): ?>
+              <tr>
+                
+                 <td><?php echo $kupon["kuponadi"] ?></td>
+                 <td><?php echo $kupon["adet"] ?></td>
+                 <td><?php echo $kupon["tutar"] ?></td>
+                 <td><input type="hidden" name="kupon_id" value="<?php echo $kupon["id"] ?>"><button type="submit" class="btn btn-default btn-xs dropdown-toggle btn-xs-caret">Delete</button></td>
+                 
+              </tr>
+            <?php endforeach; ?>
+        </tbody>
+        <input type="hidden" name="bulkStatus" id="bulkStatus" value="0">
+      </form>
+   </table>
+   <hr>
+   <h4>Coupons Used</h4>
+ 
+   
+   <table class="table report-table" style="border:1px solid #ddd">
+      <thead>
+         <tr>
+           
+           
+            <th width="33%">Member Number</th>
+            <th width="15%">Coupon Code</th>
+            <th width="33%">Amount</th>
+            <th></th>
+         </tr>
+      </thead>
+      <form id="changebulkForm" action="<?php echo site_url("admin/kuponlar/delete") ?>" method="post" onsubmit="return confirm('Silmek istiyor musunuz ?');">
+        <tbody>
+          <?php foreach($kupon_kullananlar as $kupons ): ?>
+              <tr>
+                
+                 <td><?php echo $kupons["uye_id"] ?></td>
+                 <td><?php echo $kupons["kuponadi"] ?></td>
+                 <td><?php echo $kupons["tutar"] ?></td>
+            
+                 
+              </tr>
+            <?php endforeach; ?>
+        </tbody>
+        <input type="hidden" name="bulkStatus" id="bulkStatus" value="0">
+      </form>
+   </table>
+</div>
+</div>
+</div>
+
+<?php include 'footer.php'; ?>

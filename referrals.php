@@ -1,44 +1,83 @@
-<?php
-if(!defined('BASEPATH')) {
-   die('Direct access to the script is not allowed');
-}
-  if( $admin["access"]["referral"] != 1  ):
-    header("Location:".site_url("admin"));
-    exit();
-  endif;
+<?php include 'header.php'; ?>
+<div class="container-fluid">
+<div class="row">
+<div class="col-md-2">
+<ul class="nav nav-pills nav-stacked p-b">
+<li class="active"><a href="/admin/referrals">Referrals</a></li>
+<li class=""><a href="/admin/payouts">Payouts</a></li>
+</ul>
+</div>
+<div class="col-md-10">
+<ul class="nav nav-tabs">
+<li class="pull-right p-b">
+<form class="form-inline" action="" method="GET">
+<div class="input-group">
+<input type="text" name="search" class="form-control" placeholder="Search">
+<input type="hidden" name="type" value="referrals">
+<span class="input-group-btn">
+<button type="submit" class="btn btn-default"><span class="glyphicon glyphicon-search" aria-hidden="true"></span></button>
+</span>
+</div>
+</form>
+</li>
+</ul>
+                            <table class="table order-table">
+                                <thead>
+                                    <tr>
+                                        <th class="p-l">ID</th>
+                                        <th>Username</th>
+                                        <th>Total visits</th>
+                                        <th>Sign Up</th>
+                                        <th>Conversion Rate</th>
+                                        <th>Total Funds</th>
+                                        <th>Earned Commision</th>
+                                        
+                                        <th>Requested Commision</th>
+                                        <th>Total Commision</th>
+                                        <th>Status</th>
+                                        <!-- <th>Reffered Accounts Username</th> -->
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <form id="changebulkForm" action="<?php echo site_url("admin/payments/online/multi-action") ?>" method="post">
+                                    <tbody>
+                                        <?php foreach ($referrals as $referral) : ?>
+                                            <tr>
+                                               <td><?php echo $referral["referral_id"] ?></td> 
+                                               <td><?php echo $referral["username"] ?></td>
+                                               <td><?php echo $referral["referral_clicks"] ?></td>
+                                               <td><?php echo $referral["referral_sign_up"] ?></td>
+                                               <td><?php echo ($referral["referral_sign_up"]/$referral["referral_clicks"])*100 ?>%</td>
+                                               <td><?php echo $referral["referral_totalFunds_byReffered"] ?></td>
+                                               <td><?php echo $referral["referral_earned_commision"] ?></td>   
+                                         
+                                               <td><?php echo $referral["referral_requested_commision"] ?></td>
+                                               <td><?php echo $referral["referral_total_commision"] ?></td>
+                                               <td><?php if($referral["referral_status"]==2){echo "Active";}else{echo "Inactive";}  ?></td>
+                                               <td class="service-block__action">
+                                                <div class="dropdown pull-right">
+                                                    <button type="button" class="btn btn-primary btn-xs dropdown-toggle btn-xs-caret" data-toggle="dropdown">Action</button>
+                                                    <ul class="dropdown-menu">
+                                                        <li><a href="#" data-toggle="modal" data-target="#modalDiv" data-action="reffered_users" data-id="<?php echo $referral["referral_code"] ?>">Views Reffered Users</a></li>
+                                                        <!-- <li><a >Disable Refferal</a></li> -->
+                                                  </ul>
+                                                </div>
+                                            </td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    </tbody>
+                                    <input type="hidden" name="bulkStatus" id="bulkStatus" value="0">
+                                </form>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
-if($_GET["remove"]){
-  $client_id = $_GET["remove"];
-  $ref_code = $_GET["ref_code"];
-  $update=$conn->prepare("UPDATE clients SET ref_by=:ref_by WHERE client_id=:client_id");
-  $update-> execute(array("ref_by" => "" , "client_id" =>$client_id ));  
-
-
-  $referral=$conn->prepare("SELECT * FROM referral  WHERE referral_code=:referral_code");
-  $referral-> execute(array("referral_code" => $ref_code ));
-  $referral= $referral->fetchAll(PDO::FETCH_ASSOC);
-
- 
-
-
-  $update=$conn->prepare("UPDATE referral SET referral_sign_up=:referral_sign_up WHERE referral_code=:referral_code");
-  $update-> execute(array("referral_code" => $ref_code ,
-   "referral_sign_up" =>$referral[0]["referral_sign_up"]- 1 )); 
-  Header("Location:".site_url('admin/referrals'));
-}
 
 
 
- 
-$referrals=$conn->prepare("SELECT * FROM referral INNER JOIN clients ON clients.ref_code=referral.referral_code WHERE referral_status=:referral_status
- ORDER BY referral_id DESC");
-$referrals-> execute(array("referral_status"=> 2));
-$referrals= $referrals->fetchAll(PDO::FETCH_ASSOC);
-
-require admin_view('referrals');
-
-
-
-
-
-?>
+<?php include 'footer.php'; ?>

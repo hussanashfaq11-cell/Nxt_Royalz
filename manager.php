@@ -1,305 +1,173 @@
-<?php
-if(!defined('BASEPATH')) {
-   die('Direct access to the script is not allowed');
-}
-if( $admin["access"]["manager"] != 1  ){
+<?php require 'header.php'; ?>
 
-    header("Location:".site_url(""));
-
-    exit();
-}
-if ($_SESSION["client"]["data"]):
-    $data = $_SESSION["client"]["data"];
-    foreach ($data as $key => $value) {
-        $$key = $value;
-    }
-    unset($_SESSION["client"]);
-endif;
+<div class="container-fluid">
+    <div class="col-md-12">
 
 
-if (!route(2) ||  route(2) != "admins") :
-    $route[2]   = "admins";
-endif;
+        <ul class="nav nav-tabs p-b">
 
 
-//Only Super Admin allowed
-if (!$admin["access"]["super_admin"]) :
-
-header("Location:" . site_url('admin'));
-
-endif;
-
-$action = route(3);
+<li class="pull-right p-b">
+<?php if (route(2) == "admins") : ?>
+<button class="btn btn-primary" type="button" data-toggle="modal" data-target="#modalDiv" data-action="add_admin">Add Admin</button>
+<?php endif; ?>
 
 
-if (route(2) == "admins") :
+</li>
+</ul>
 
-    $adminsData   = $conn->prepare("SELECT * FROM admins WHERE admin_type=:type ");
-    $adminsData->execute(array("type" => 3));
-    $admins = $adminsData->fetchAll(PDO::FETCH_ASSOC);
+<?php if (route(2) == "admins") : ?>
+
+<div class="row">
+<center>
+    <h3><strong>Super Admin</strong></h3>
+</center>
+<div  style="overflow:scroll;height:140px;" class="">
+
+<table  class="table">
+    <thead>
+        <tr>
+
+<th>Name</th>
+            <th>Email</th>
+            <th>Username</th>
+            <th>Status</th>
 
 
-    $staffData   = $conn->prepare("SELECT * FROM admins WHERE admin_type=:type ");
-    $staffData->execute(array("type" => 2));
-    $staffsData   = $staffData->fetchAll(PDO::FETCH_ASSOC);
+<th nowrap="">Created at</th>
+<th nowrap="">Last Login</th>
+
+            <th></th>
+        </tr>
+    </thead>
 
 
 
-endif;
+    <tbody>
+        <?php foreach ($admins as $mainadmin): ?>
+
+           
+
+                <tr>
+
+<td><?php echo $mainadmin["admin_name"] ?></td>
+<td><?php echo $mainadmin["admin_email"] ?></td>
+<td><?php echo $mainadmin["username"] ?></td>
+<td><?php echo $mainadmin["client_type"] == 2 ? "Active"  : "Inactive" ?></td>
+
+<td><?php echo $mainadmin["register_date"] ?></td>
+<td><?php echo $mainadmin["login_date"] ?></td>
 
 
-if($action == "delete_staff"):
-$id = route(4);
-$delete = $conn->prepare("DELETE FROM admins WHERE admin_id=:id");
-$delete->execute(array(
-    "id" => $id));
-    $error    = 1;
-            $errorText = "Successful";
-            $icon     = "success";
-    header("Location: ".site_url("admin/manager"));
-elseif ($action == "edit") :
+<td class="td-caret">
+    <div class="dropdown pull-right">
+        <button type="button" class="btn btn-default btn-xs dropdown-toggle btn-xs-caret" data-toggle="dropdown" aria-expanded="true">
+          Actions <span class="caret"></span>
+        </button>
+        <ul class="dropdown-menu">
+
+            <li><a href="#" data-toggle="modal" data-target="#modalDiv" data-action="edit_admin" data-id="<?php echo $mainadmin["admin_id"] ?>">Edit Account</a></li>
 
 
-    $admin_id = route(4);
-
-
-    $name = $_POST['name'];
-    $name = strip_tags($name);
-    $name = filter_var($name, FILTER_SANITIZE_STRING);
-    $email = $_POST['email'];
-    $email = strip_tags($email);
-    $email = filter_var($email, FILTER_SANITIZE_EMAIL);
-    $username = $_POST['username'];
-    $username = strip_tags($username);
-    $username = filter_var($username, FILTER_SANITIZE_STRING);
-    $telephone = $_POST['telephone'];
-    $telephone = strip_tags($telephone);
-    $telephone = filter_var($telephone, FILTER_VALIDATE_INT);
-
-    $client_type = $_POST['client_type'];
-
-    $admin_access = $_POST['admin_access'];
-
-
-
-    $accessArray = array();
-    foreach ($admin_access as $access) {
-        $accessArray[$access] = 1;
-    }
-if ($admin["access"]["super_admin"]){
-$accessArray["super_admin"] = 1;
-}
-$accessArray = json_encode($accessArray);
-
-
-    if (empty($name) || strlen($name) < 5) {
-        $error      = 1;
-        $errorText  = "Member name must be at least 5 characters";
-        $icon     = "error";
-    } elseif (!email_check($email)) {
-        $error      = 1;
-        $errorText  = "Please enter valid email format.";
-        $icon     = "error";
-    } elseif (!username_check($username)) {
-        $error      = 1;
-        $errorText  = "The username must contain a minimum of 4 and a maximum of 32 characters, including letters and numbers..";
-        $icon     = "error";
-    } elseif (!empty($phone) && $conn->query("SELECT * FROM admins WHERE username!='$username' && telephone='$telephone' ")->rowCount()) {
-        $error      = 1;
-        $errorText  = "The phone number you specified is used.";
-        $icon     = "error";
-    } else {
-        $conn->beginTransaction();
-        $insert1 = $conn->prepare("UPDATE admins SET admin_name=:name, admin_email=:email,
-        username=:username,telephone=:telephone,
-        access=:access , client_type=:client_type WHERE admin_id=:id ");
-    $insert1->execute(array(
-            "id" => $admin_id, "name" => $name, "email" => $email,"username" => $username, "telephone" => $telephone,
-            "client_type" => $client_type, "access" => $accessArray
-        ));
-
-if ($insert1) :
-            $conn->commit();
-            $referrer = site_url("admin/manager");
-            $error    = 1;
-            $errorText = "Successful";
-            $icon     = "success";
-        else :
-            $conn->rollBack();
-            $error    = 1;
-            $errorText = "Unsuccessful";
-            $icon     = "error";
-            $referrer = site_url("admin/manager");
-        endif;
-    }
-
-
-    echo json_encode(["t" => "error", "m" => $errorText, "s" => $icon, "r" => $referrer]);
-    exit();
-elseif ($action == "new") :
-
-
-
-
-    $name = $_POST['name'];
-    $name = strip_tags($name);
-    $name = filter_var($name, FILTER_SANITIZE_STRING);
-    $email = $_POST['email'];
-    $email = strip_tags($email);
-    $email = filter_var($email, FILTER_SANITIZE_EMAIL);
-    $username = $_POST['username'];
-    $username = strip_tags($username);
-    $username = filter_var($username, FILTER_SANITIZE_STRING);
-    $telephone = $_POST['telephone'];
-    $telephone = strip_tags($telephone);
-    $telephone = filter_var($telephone, FILTER_VALIDATE_INT);
-    $client_type = $_POST['client_type'];
-    $admin_access = $_POST['admin_access'];
-    $password = $_POST['password'];
-
-
-
-    $accessArray = array();
-    foreach ($admin_access as $access) {
-        $accessArray[$access] = "1";
-    }
-    $accessArray = json_encode($accessArray);
-
-    if (empty($name) || strlen($name) < 5) {
-        $error      = 1;
-        $errorText  = "Member name must be at least 5 characters";
-        $icon     = "error";
-    } elseif (!email_check($email)) {
-        $error      = 1;
-        $errorText  = "Please enter valid email format.";
-        $icon     = "error";
-    } elseif ($conn->query("SELECT * FROM admins WHERE username!='$username' && admin_email='$email' ")->rowCount()) {
-        $error      = 1;
-        $errorText  = "The email address you entered is used.";
-        $icon     = "error";
-    } elseif (strlen($password) < 8) {
-        $error      = 1;
-        $errorText  = "Password must be at least 8 characters.";
-        $icon       = "error";
-    } elseif (!username_check($username)) {
-        $error      = 1;
-        $errorText  = "The username must contain a minimum of 4 and a maximum of 32 characters, including letters and numbers..";
-        $icon     = "error";
-    } elseif ($conn->query("SELECT * FROM admins WHERE username='$username'")->rowCount()) {
-        $error      = 1;
-        $errorText  = "The username you specified is used.";
-        $icon     = "error";
-    } elseif (!empty($phone) && $conn->query("SELECT * FROM admins WHERE username!='$username' && telephone='$telephone' ")->rowCount()) {
-        $error      = 1;
-        $errorText  = "The phone number you specified is used.";
-        $icon     = "error";
-    } else {
-
+        </ul>
+    </div>
+</td>
+                </tr>
         
-
-        $conn->beginTransaction();
-        $insert2 = $conn->prepare("INSERT INTO admins SET admin_name=:name, admin_email=:email, telephone=:telephone ,
-        access=:access , username=:username , password=:password ,client_type=:client_type , admin_type=:admin_type,register_date=:register_date");
-    $insert2->execute(array(
-            "name" => $name, "username" => $username, "email" => $email,
-            "telephone" => $telephone, "admin_type" => 2, "password" => $password,
-            "client_type" => $client_type, "access" => $accessArray,
-            "register_date" => date('Y-m-d H:i:s')
-        ));
-      //  $insert2->errorInfo();
-        if ($insert2) :
-            $conn->commit();
-            $referrer = site_url("admin/manager");
-            $error    = 1;
-            $errorText = "Successful";
-            $icon     = "success";
-        else :
-            $conn->rollBack();
-            $error    = 1;
-            $errorText = "Unsuccessful";
-            $icon     = "error";
-            $referrer = site_url("admin/manager");
-        endif;
-    }
-
-    echo json_encode(["t" => "error", "m" => $errorText, "s" => $icon, "r" => $referrer]);
-    exit();
-
-elseif ($action == "username") :
-    $admin_id = route(4);
-    $username = $_POST['username'];
-    $username = strip_tags($username);
-    $username = filter_var($username, FILTER_SANITIZE_STRING);
-    $current_username = $_POST['current_username'];
-    $current_username = strip_tags($current_username);
-    $current_username = filter_var($current_username, FILTER_SANITIZE_STRING);
-    if (!username_check($username)) {
-        $error      = 1;
-        $errorText  = "The username must contain a minimum of 4 and a maximum of 32 characters, including letters and numbers..";
-        $icon     = "error";
-    } elseif (($current_username != $username) && $conn->query("SELECT * FROM admins WHERE username='$username'")->rowCount()) {
-        $error      = 1;
-        $errorText  = "The username you specified is used.";
-        $icon     = "error";
-    } else {
-        $conn->beginTransaction();
-        $insert3 = $conn->prepare("UPDATE admins SET username=:username WHERE admin_id=:id");
-        $insert3 = $insert3->execute(array(
-            "username" => $username, "id" => $admin_id
-        ));
-        if ($insert3) :
-            $conn->commit();
-            $referrer = site_url("admin/manager");
-            $error    = 1;
-            $errorText = "Successful";
-            $icon     = "success";
-        else :
-            $conn->rollBack();
-            $error    = 1;
-            $errorText = "Unsuccessful";
-            $icon     = "error";
-            $referrer = site_url("admin/manager");
-        endif;
-    }
-    echo json_encode(["t" => "error", "m" => $errorText, "s" => $icon, "r" => $referrer]);
-    exit();
-
-elseif ($action == "password") :
-    $admin_id  = route(4);
-    if (!countRow(["table" => "admins", "where" => ["admin_id" => $admin_id]])) : header("Location:" . site_url("admin/clients"));
-        exit();
-    endif;
-    $staff_details  = getRow(["table" => "admins", "where" => ["admin_id" => $admin_id]]);
-    
-    if ($_POST) :
-        $password = $_POST["password"];
-
-        if (strlen($password) < 8) {
-            $error      = 1;
-            $errorText  = "Password must be at least 8 characters.";
-            $icon       = "error";
-        } else {
-            $conn->beginTransaction();
-            $insert4 = $conn->prepare("UPDATE admins SET password=:pass WHERE admin_id=:id ");
-            $insert4 = $insert4->execute(array("id" =>$admin_id, "pass" =>md5(sha1(md5($password))) ));
-            if ($insert4) :
-            $conn->commit();
-            $referrer = site_url("admin/manager");
-            $error    = 1;
-            $errorText = "Successful";
-            $icon     = "success";
-        else :
-            $conn->rollBack();
-            $error    = 1;
-            $errorText = "Unsuccessful";
-            $icon     = "error";
-            $referrer = site_url("admin/manager");
-        endif;
-        }
-       
-        echo json_encode(["t" => "error", "m" => $errorText, "s" => $icon, "r" => $referrer]); exit();
-endif;
-endif;
+   <?php    endforeach; ?>
 
 
-require admin_view('manager');
+
+    </tbody>
+</table>
+                </div>
+<center>
+    <h3><strong>Staff</strong></h3>
+</center>
+<div style="overflow:scroll;"><br>
+
+
+
+<table class="table">
+    <thead>
+        <tr>
+
+            <th>Name</th>
+            <th>Email</th>
+            <th>Username</th>
+            <th>Status</th>
+
+            <th nowrap="">Created at</th>
+            <th nowrap="">Last Login</th>
+
+            <th></th>
+        </tr>
+    </thead>
+
+
+
+    <tbody>
+
+        <?php foreach ($staffsData as $staff ) : ?>
+
+
+
+                <tr>
+
+<td><?php echo $staff["admin_name"] ?></td>
+<td><?php echo $staff["admin_email"] ?></td>
+<td><?php echo $staff["username"] ?></td>
+<td><?php echo $staff["client_type"] == 2 ? "Active"  : "Inactive" ?></td>
+
+<td><?php echo $staff["register_date"] ?></td>
+<td><?php echo $staff["login_date"] ?></td>
+
+
+
+
+                <td class="td-caret">
+<div class="dropdown pull-right">
+    <button type="button" class="btn btn-default btn-xs dropdown-toggle btn-xs-caret" data-toggle="dropdown"
+    data-boundary="window"
+    aria-haspopup="true"
+    aria-expanded="false">
+      Actions <span class="caret"></span>
+    </button>
+    <ul class="dropdown-menu">
+
+        <li><a href="#" data-toggle="modal" data-target="#modalDiv" data-action="edit_admin" data-id="<?php echo $staff["admin_id"] ?>">Edit Account</a></li>
+        <li><a href="#" data-toggle="modal" data-target="#modalDiv" data-action="edit_admin_password" data-id="<?php echo $staff["admin_id"] ?>">Change Password</a></li>
+<li><a href="/admin/manager/admins/delete_staff/<?php echo $staff["admin_id"]?>">Delete Staff Member</a></li>
+    </ul>
+</div>
+                </td>
+            </tr>
+    <?php    endforeach; ?>
+
+
+
+    </tbody>
+</table>
+                </div>
+            </div>
+
+        <?php endif; ?>
+        
+    </div>
+</div>
+<div class="modal modal-center fade" id="confirmChange" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" data-backdrop="static">
+    <div class="modal-dialog modal-dialog-center" role="document">
+        <div class="modal-content">
+            <div class="modal-body text-center">
+                <h4>Do you confirm the process?</h4>
+                <div align="center">
+<a class="btn btn-primary" href="" id="confirmYes">Confirm</a>
+<button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<?php require 'footer.php'; ?>

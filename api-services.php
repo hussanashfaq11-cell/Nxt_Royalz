@@ -1,458 +1,626 @@
+<?php include('header.php') ?>
+
+<style>
+    .services-import__header li.active {
+        background-color: #EEEEEE;
+        color: white;
+        border-radius: 3px;
+    }
+</style>
+
+
+
+<div class="container-fluid" role="main">
+    <?php if (($_SESSION["information"])) : $info = $_SESSION["information"];  ?>
+        <div class="alert alert-<?= $info["type"] ?> " role="alert">
+<?= $info["message"]  ?>
+        </div>
+
+        <script>
+setTimeout(() => {
+    <?php $_SESSION["information"] = array(); ?>
+}, 2000);
+        </script>
+
+
+    <?php endif; ?>
+    <div class="container container-fluid" role="main">
+        <div class="col-sm-offset-3 col-sm-5 m-t">
+
+<div class="services-import__header">
+    <ul style="display:flex; cursor:not-allowed;" class="nav nav-wizard">
+        <li class="<?php if (!route(2)) : ?> active <?php endif; ?>"><a>Choose Provider</a></li>
+        <li class="<?php if (route(2) == "ajax_services_update") : ?> active  <?php endif; ?>"><a>Select Category</a></li>
+        <li class="<?php if (route(2) == "ajax_services_last") : ?> active  <?php endif; ?>"><a>Customize Services</a></li>
+
+    </ul>
+
+
+</div>
+        </div>
+
+
+
+
+
+    </div>
+
+    <?php if (!route(2)) : ?>
+
+        <div class="col-sm-offset-3 col-sm-5 m-t">
+<form method="post" action="<?= site_url('admin/api-services/ajax_services_update') ?>" data-parsley-validate="" id="demo-form2" novalidate="">
+    <div class="form-group">
+        <label class="control-label" for="api_fetch_id"> Select API </label>
+        <select id="api_fetch_id" data-live-search="true" name="api_fetch_id" class="form-control">
+<?php foreach ($providers as $provider) : ?>
+    <option value="<?php echo $provider['id'] ?>"><?php echo $provider['api_name'] ?></option>
+<?php endforeach; ?>
+        </select>
+        <p class="help-block help-block-error"></p>
+    </div>
+    <div class="form-group">
+        <label class="control-label" for="profit"> Profit Percent </label>
+        <div class="input-group">
+<input class="form-control" name="profit" id="profit" value="10" required type="number">
+<div class="input-group-addon">
+    <label>%</label>
+</div>
+        </div>
+        <p class="help-block help-block-error"></p>
+    </div>
+
+
+    <button type="submit" id="api_feetch" name="api_feetch" class="btn btn-block btn-primary"> Next Step </button>
+
+</form>
+        </div>
+
+    <?php elseif (route(2) == "ajax_services_update") : ?>
+
+
+
+        <center>
+<h3>Select Categories to Import</h3>
+<h5>Total Services Found: <?= $servicesCount ?></h5>
+
+        </center>
+        <ul class="nav nav-tabs nav-tabs__service">
+<li class="pull-right">
+    <div class="inline-block"><label for="service-search-input" class="service-search__icon"></label>
+        <input class="form-control" placeholder="Search Categories" id="priceService" type="text" value="">
+    </div> <br>
+</li>
+        </ul>
+
+        <?php if (isset($disabled)) : ?>
+<div class="alert alert-danger">
+    <h4>Important Information</h4>
+    Select atmost <strong>10-15</strong> categories since this provider has lot of services so page can take more time to load.<br />
+    Better to add some categories first and remaining again in second row,
+    also keep as less and best of the services as possible so no lag will be there while on services page as well.
+</div>
+        <?php endif; ?>
+<div style="overflow:auto">
+        <table class="table" style="font-size: 13px;">
+<form action="<?= site_url('admin/api-services/ajax_services_add') ?>" method="post" id="changebulkForm">
+    <input id="hidden_data" hidden type="text" value="" name="form_data">
+
+    <thead>
+        <tr>
+<th class="checkAll-th">
+    <div class="checkAll-holder">
+        <input <?= $disabled ?> class="checkAll" type="checkbox">
+    </div>
+    <div class="action-block">
+        <ul class="action-list">
+<li><span class="countOrders"></span> selected</li>
+<li>
+    <div class="dropdown pull-right">
+        <button type="button" class="btn btn-default btn-xs dropdown-toggle btn-xs-caret" data-toggle="dropdown">Actions <span class="caret"></span></button>
+        <ul class="dropdown-menu">
+<li><a onclick="map_categories()" id="map_categories"> Import these categories </a></li>
+        </ul>
+    </div>
+</li>
+        </ul>
+    </div>
+</th>
+<th class="column-id">Id</th>
+<th>Select Categories</th>
+<th>API Category Name</th>
+        </tr>
+    </thead>
+    <tbody>
+
+        <?php if (!$services->error) {
+$grouped = array_group_by($services, 'category');
+$category_id = 0;
+foreach ($grouped as $category) {
+    $category_id++;
+
+        ?>
+    <tr data-name="<?= $category[0]->category ?>">
+        <td><input class="selectOrder" name="checkbox[<?= $category_id ?>]" value="<?= $category_id ?>" type="checkbox"></td>
+        <td> <?= $category_id ?> </td>
+        <td class="col-md-5">
+<select class="form-control" name="category_ids[<?= $category_id ?>]">
+    <option value="0">Create New</option>
+    <?php foreach ($categoriesData as $cat) : ?>
+        <option class="<?= $cat["category_type"] == 1 ? "grey" : "" ?>" value="<?= $cat["category_id"] ?>"><?= $cat['category_name'] ?></option>
+    <?php endforeach; ?>
+</select>
+
+        </td>
+        <td class="col-md-6">
+<input style="width:400px;" class="form-control categoryName" value="<?= $category[0]->category ?>" name="category_name[<?= $category_id ?>]" type="text">
+<input value="<?= $category[0]->category ?>" name="old_category_name[<?= $category_id ?>]" type="hidden">
+        </td>
+    </tr>
 <?php
-if(!defined('BASEPATH')) {
-   die('Direct access to the script is not allowed');
 }
-if( $admin["access"]["services"] != 1  ){
-    header("Location:".site_url("admin"));
-    exit();
-}
-session_start();
-if (route(2) && is_numeric(route(2))) :
-    $page = route(2);
-else :
-    $page = 1;
-endif;
+        } else { ?>
+<tr>
+    <td colspan="4" align="center">
+        <h3><strong>No Services Found 🙄<br />
+</strong><code> <?= $services->error ?></code></h3>
+    </td>
 
-$smmapi = new SMMApi();
+</tr>
+        <?php } ?>
+    </tbody>
+    <input name="status" id="bulkStatus" value="1" type="hidden">
+    <input type="hidden" value="categories" name="import" id="importValue">
+</form>
+        </table>
+</div>
 
-if (route(2) == "ajax_services_update" && !$_POST) {
-    $information = array(
-        'type' => 'error',
-        'message' => 'No data available, Please try again!',
-    );
+    <?php elseif (route(2) == "ajax_services_last") : ?>
 
-    $_SESSION["information"] = $information;
-
-    Header("Location:" . site_url('admin/api-services'));
-}
-
-if (route(2) == "ajax_services_last" && (!$_SESSION["cat_data"] && !$_SESSION["multiple"])) {
-    $information = array(
-        'type' => 'error',
-        'message' => 'No data available, Please try again!',
-    );
-    $_SESSION["information"] = $information;
-
-    Header("Location:" . site_url('admin/api-services'));
-}
-
-if (!route(2)) :
-
-    if (
-        $_SESSION["provider"] || $_SESSION["cat_data"] || $_SESSION["provider_services"]
-        || $_SESSION["profit"] || $_SESSION["information"] || $_SESSION["multiple"]
-    ) {
-
-        unset($_SESSION["provider"]);
-        unset($_SESSION["cat_data"]);
-        unset($_SESSION["profit"]);
-        unset($_SESSION["information"]);
-        unset($_SESSION["provider_services"]);
-        unset($_SESSION["multiple"]);
-    }
-
-    $providers  = $conn->prepare("SELECT * FROM service_api ORDER BY id ASC");
-    $providers->execute(array());
-    $providers  = $providers->fetchAll(PDO::FETCH_ASSOC);
+        <center>
+<h3>Select Services to Import</h3>
+<h5>Total Services Found: <?= $servicesCount ?></h5>
+<span class="badge badge-secondary"><?=$provider["api_name"]." : ".$provider["currency"];?></span>
+        </center>
+        <br>
+        <ul class="nav nav-tabs nav-tabs__service">
+<li class="pull-right">
+    <div class="inline-block"><label for="service-search-input" class="service-search__icon"></label>
+        <input class="form-control" placeholder=" Search Services" id="priceService" type="text" value="">
+    </div> <br>
+</li>
+        </ul>
 
 
-elseif (route(2) == "ajax_services_update" && $_POST) :
+        <form action="<?= site_url('admin/api-services/ajax_services_addNow') ?>" method="post" id="servicesAddForm">
+
+<input id="services_data" hidden type="text" value="" name="form_data">
 
 
-    $provider_id = $_POST['api_fetch_id'];
+        </form>
+        <?php if (isset($pageMessage) && !empty($pageMessage)) : ?>
+<div class="alert alert-info">
+    <?= $pageMessage ?>
+</div>
+        <?php endif; ?>
+        <div style="overflow:auto;">
 
-    $provider = $conn->prepare('SELECT * FROM service_api WHERE id=:id');
-    $provider->execute(['id' => $provider_id]);
-    $provider = $provider->fetch(PDO::FETCH_ASSOC);
+<table class="table" style="font-size: 13px; ">
+
+    <form action="<?= site_url('admin/api-services/ajax_services_addNow') ?>" method="post" id="changebulkForm">
+        <input type="hidden" value="<?= $profit ?>" name="service_profit_percentage">
+        <input type="hidden" value="services" name="import" id="importValue">
+        <thead>
+<tr>
+    <th class="checkAll-th">
+        <div class="checkAll-holder">
+<input class="checkAll" type="checkbox">
+        </div>
+        <div class="action-block">
+<ul class="action-list">
+    <li><span class="countOrders"></span> selected</li>
+    <li>
+        <div class="dropdown pull-right">
+<button type="button" class="btn btn-default btn-xs dropdown-toggle btn-xs-caret" data-toggle="dropdown">
+    Actions <span class="caret"></span>
+</button>
+<ul class="dropdown-menu">
+    <li><a onclick="map_services" id="disabledservices"> Import Services </a></li>
+</ul>
+        </div>
+    </li>
+</ul>
+        </div>
+    </th>
+    <th class="column-id">ID</th>
+    <th>Category</th>
+    <th>Service</th>
+    <th>API Service</th>
+    <th>Type</th>
+    <th>API</th>
+    <th>Rate [+<?= $profit ?>%]</th>
+    <th nowrap="nowrap">Min order</th>
+    <th nowrap="nowrap">Max order</th>
+    <th nowrap="nowrap">Description</th>
+</tr>
+        </thead>
+
+        <tbody>
+<input name="status" id="bulkStatus" value="2" type="hidden">
+<?php $i = 0;
+foreach ($getServicesByCategory as $categoryId => $services) : ?>
+    <?php foreach ($services as $service) :
+
+  if ($provider["api_type"] == 1) {
+$servicePrice = $service->rate;
+$SELLER_PRICE = $servicePrice;
+        } elseif ($provider["api_type"] == 4) {
+$servicePrice = $service->cost;
+$SELLER_PRICE = $servicePrice;
+        }
+//$servicePrice = round($servicePrice/82.34, 3) ;
+$servicePrice = from_to(get_currencies_array("all"),$provider["currency"],$settings["site_base_currency"],$servicePrice);
+$providerCurrency = $provider["currency"];
+
+$numberToAdd = ($profit / 100) * $servicePrice;
 
 
-if ($_POST && (empty($_POST['api_fetch_id']) ||  empty($provider))) :
-$information = array(
-            "type" => "danger",
-            "message" => "Provider must be there to fetch services",
-        );
-   /* elseif ($_POST && (empty($_POST['profit']) || $_POST['profit'] < 0)) :
-        $information = array(
-            "type" => "danger",
-            "message" => "Profit must be more than 0",
-        );*/
-    else :
-        $information = array();
-    endif;
+$price = $servicePrice + $numberToAdd;
 
-    $_SESSION["information"] = $information;
+$finalPrice = $price;
 
-
-    if ($information["type"] != "danger") {
-
-
-        $categoriesData = $conn->prepare('SELECT * FROM categories WHERE category_deleted=:del ORDER BY category_line ');
-        $categoriesData->execute(["del" => 0]);
-        $categoriesData = $categoriesData->fetchAll(PDO::FETCH_ASSOC);
-
-
-        if ($provider['api_type'] == 1) :
-            $services = $smmapi->action(['key' => $provider['api_key'], 'action' => 'services'], $provider['api_url']);
-        endif;
-
-        $servicesCount = count($services);
-        // if ($servicesCount > 100) {
-        //     $disabled = "disabled";
-        // }
-
-
-        $_SESSION["provider"] = $provider;
-        $_SESSION["profit"] = $_POST['profit'];
-    } else {
-        $services = json_encode(['error' => 'Something went wrong!']);
-        Header("Location:" . site_url('admin/api-services'));
-    }
-
-
-
-elseif (route(2) == "ajax_services_add" && $_POST) :
  
-    parse_str(json_decode($_POST["form_data"]), $postData);
+    ?>
+
+<tr data-name="<?= $service->name ?>">
+<td><input class="selectOrder" name='checkbox[<?= $i ?>]' value="1" type="checkbox"></td>
+<td> <?= $i + 1 ?> </td>
+<td>
+    <select class="form-control" name="category_ids_array[<?= $i ?>]">
+        <?php foreach ($allCategories as $category) : if ($category["category_id"] == $categoryId) : ?>
+<option value="<?= $category["category_id"] ?>" <?php ?>selected="selected"><?= $category["category_name"] ?>
+</option>
+        <?php endif; endforeach; ?>
+    </select>
+</td>
+<td>
+    <select class="form-control" name="our_services_ids_array[<?= $i ?>]">
+        <option value="0">Create New</option>
+        <?php foreach ($allServices as $serv) : ?>
+<option value="<?= $serv["service_id"] ?>"><?= $serv["service_name"] ?> </option>
+        <?php endforeach; ?>
+    </select>
+</td>
+<td class="link" style="max-width: 450px;">
+    <input style="width:100%;" class="form-control" value="<?= $service->name ?>" name="service_name_array[<?= $i ?>]" type="text">
+</td>
+<td><?= $service->type ?>
+    <input type="hidden" value="<?= $service->type ?>" name="service_type_array[<?= $i ?>]">
+</td>
+<td>
+    <?= $provider["api_name"] ?> <div class="grey"> <?= $service->service ?></div>
+    <input name="api_service_id_array[<?= $i ?>]" value="<?= $service->service ?>" type="hidden">
+</td>
+<td class="col-md-1">
+    <div class="input-group">
+        <input style="width:140px;" class="form-control" value="<?= $finalPrice ?>" name="prices_array[<?= $i ?>]" type="text">
+        <div class="input-group-addon">
+<label>
+<?php echo $settings["site_base_currency"]." "."(".get_currency_symbol_by_code($settings["site_base_currency"]).")";?>
+</label>
+        </div>
+    </div>
+<?php 
+if($provider["currency"] !== $settings["site_base_currency"]){?>
+    <div>Selling Price [+<?= $profit;?>%] : <font color="#FF577F"><b><i><?= "≈ ".format_amount_string($settings["site_base_currency"],$finalPrice);?></i></b></font></div>
+<?php } ?>
+<?php 
+if($provider["currency"] == $settings["site_base_currency"]){?>
+    <div>Selling Price [+<?= $profit;?>%] : <font color="#FF577F"><b><i><?=format_amount_string($settings["site_base_currency"],$finalPrice);?></i></b></font></div>
+<?php } ?>
+
+<?php 
+if($provider["currency"] == $settings["site_base_currency"]){?>
+    <div class="">Seller Cost :
+<font color="#10A19D"><b><?php echo format_amount_string($settings["site_base_currency"],from_to(get_currencies_array("all"),$provider["currency"],$settings["site_base_currency"],$SELLER_PRICE));?></b></font>
+<?php } ?>
+<?php 
+if($provider["currency"] !== $settings["site_base_currency"]){?>
+    <div class="">Seller Cost :
+<font color="#10A19D"><b><?php echo "≈ ".format_amount_string($settings["site_base_currency"],from_to(get_currencies_array("all"),$provider["currency"],$settings["site_base_currency"],$SELLER_PRICE));?></b></font>
+<?php } ?>
 
 
-    $checkBoxes = $postData['checkbox'];
-    $category_ids = $postData['category_ids'];
-    $category_name = $postData['category_name'];
-    $old_category_name = $postData['old_category_name'];
-    $status = $postData['status'];
+</div>
+</td>
+<td class="col-md-1">
 
-    $i = 0;
-    $nextData = array();
-  //  print_r($_POST);exit;
-    foreach ($checkBoxes as $check) {
+    <input style="width:100%;" class="form-control" value="<?= $service->min ?>" name="min_array[<?= $i ?>]" type="text">
 
-        $cat_id = $category_ids[$check];
+</td>
+<td class="col-md-1">
+    <input style="width:100%;" class="form-control" value="<?= $service->max ?>" name="max_array[<?= $i ?>]" type="text">
+</td>
+<td class="col-md-1">
+    <textarea style="width:100%;" class="form-control" name="description_array[<?= $i ?>]" type="text"><?= empty($service->desc) ?  $service->description : $service->desc ?></textarea>
+</td>
+<input type="hidden" value="<?= $service->refill ?>" name="service_refill_array[<?= $i ?>]">
+<input type="hidden" value="<?= $provider["id"] ?>" name="service_provider_array[<?= $i ?>]">
+<input type="hidden" value="<?= $SELLER_PRICE ?>" name="service_api_prices[<?= $i ?>]">
 
-        if ($cat_id == 0) {
-
-            $query = $conn->prepare("SELECT * FROM categories WHERE category_name=:name");
-            $query->execute(array("name" => $category_name[$check]));
-            $query = $query->fetch(PDO::FETCH_ASSOC);
-
-        //    if (!empty($query)) {
-                //already exists a category
-                $category_ids[$check] = $query["category_id"];
-                $cat_id =  $query["category_id"];
-    //      } else {
-
-
-                // get last service line
-                $categoryLine     = $conn->prepare("SELECT category_line FROM categories
-            ORDER BY category_line DESC LIMIT 1");
-                $categoryLine->execute(array());
-                $categoryLine     = $categoryLine->fetch(PDO::FETCH_ASSOC);
+        </tr>
+    <?php $i++;
+    endforeach; ?>
+<?php endforeach; ?>
+        </tbody>
+    </form>
+</table>
 
 
-                $categoryLine  = empty($categoryLine["category_line"]) ? '0' : $categoryLine["category_line"];
-                
-              $language   = $conn->prepare("SELECT * FROM languages WHERE default_language=:default");
 
-        $language->execute(array("default"=>1));
+        </div>
 
-        $language   = $language->fetch(PDO::FETCH_ASSOC);
-                
-$MultiCatName = [
-                    
-$language["language_code"] =>  $category_name[$check]
-                    ];
-                    
-                    $MultiCatName = json_encode($MultiCatName);
+</div>
 
-                //make a new category    
-                $insert = $conn->prepare("INSERT INTO categories SET category_name=:category_name,category_name_lang=:category_name_lang, 
-            category_line=:category_line, category_type=2,  category_secret=2");
-                $insert = $insert->execute(array(
-                    "category_name" => $category_name[$check],
-                    "category_name_lang" => $MultiCatName,
-                    "category_line" => $categoryLine + 1
-                ));
-                //insert in data
-                $cat_id = $conn->lastInsertId();
-                $i++;
- //           }
+
+<?php endif; ?>
+
+
+<div class="modal fade" id="modifyServices" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" data-backdrop="static" style="display: none;">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+<div class="modal-header">
+    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">×</span></button>
+    <h4 class="modal-title" id="myModalLabelAddService">Add subscription</h4>
+</div>
+<form action="" method="post" id="modify-service">
+    <div class="modal-footer">
+        <button type="submit" class="btn btn-primary" id="modify-service-button">Save changes</button>
+        <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+    </div>
+
+</form>
+        </div>
+    </div>
+</div>
+<div class="modal fade" id="modifySubscription" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" data-backdrop="static" style="display: none;">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+<div class="modal-header">
+    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">×</span></button>
+    <h4 class="modal-title" id="myModalLabelAddSubscription">Add subscription</h4>
+</div>
+<form action="" method="post" id="modify-subscription">
+    <div class="modal-footer">
+        <button type="submit" class="btn btn-primary" id="modify-service-button">Save changes</button>
+        <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+    </div>
+
+</form>
+        </div>
+    </div>
+</div>
+<div class="modal fade" id="modifyCategory" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" data-backdrop="static" style="display: none;">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+<div class="modal-header">
+    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">×</span></button>
+    <h4 class="modal-title" id="modifyCategoryLabel">Edit category</h4>
+</div>
+<form action="" method="post" id="modify-category">
+    <div class="modal-body">
+        <div class="alert alert-danger hide" id="modify-category-error"></div>
+        <div class="form-group">
+<label class="form-group__service-name">Category name <span class="badge">English US</span></label>
+<input name="name-_en" class="form-control" value="Twitter" type="text">
+        </div>
+        <div class="form-group">
+<label>Visibility</label>
+<select name="visibility" class="form-control">
+    <option value="1">Enabled</option>
+    <option value="0" selected="selected">Disabled</option>
+</select>
+        </div>
+    </div>
+    <input name="id" value="1" type="hidden">
+    <div class="modal-footer">
+        <button type="submit" class="btn btn-primary" id="modify-category-button">Edit category</button>
+        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+    </div>
+</form>
+        </div>
+    </div>
+</div>
+<!-- confirmChange -->
+<div class="modal modal-center fade" id="confirmChange_reset" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" data-backdrop="static">
+    <div class="modal-dialog modal-dialog-center" role="document">
+        <div class="modal-content">
+<form method="post" action="">
+    <div class="modal-body text-center">
+        <h4>Are you sure you want to reset custom rates to all users for current service?</h4>
+        <input type="hidden" name="service_id" value="0" id="reset_service_id" />
+        <input type="hidden" name="reset_all_price_service" value="reset_all_price_service" />
+        <div align="center">
+<button class="btn btn-primary">Yes</button>
+<button type="button" class="btn btn-default" data-dismiss="modal">No</button>
+        </div>
+    </div>
+</form>
+        </div>
+    </div>
+</div>
+<!-- confirmChange -->
+<div class="modal modal-center fade" id="confirmChange" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" data-backdrop="static">
+    <div class="modal-dialog modal-dialog-center" role="document">
+        <div class="modal-content">
+<div class="modal-body text-center">
+    <h4>Are you sure you want to reset custom rates to all users for current service?</h4>
+    <div align="center">
+        <a class="btn btn-primary" href="" id="confirmYes">Yes</a>
+        <button type="button" class="btn btn-default" data-dismiss="modal">No</button>
+    </div>
+</div>
+        </div>
+    </div>
+</div>
+<div class="modal fade" id="editDescription" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" data-backdrop="static">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+<div class="modal-header">
+    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">×</span></button>
+    <h4 class="modal-title" id="myModalLabel">Edit description</h4>
+</div>
+<div id="editdescriptionBody"></div>
+        </div>
+    </div>
+</div>
+<!-- confirmChangeBulk -->
+<div class="modal fade" id="confirmChangeBulk" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" data-backdrop="static">
+    <div class="modal-dialog modal-sm modal-yesno" role="document">
+        <div class="modal-content">
+<div class="modal-body">
+    <div class="m-b" align="center">
+        <h4 class="m-t-0">Are you sure?</h4>
+    </div>
+    <div align="center">
+        <a class="btn btn-primary" onclick="map_services()" id="confirmYesBulk">Yes</a>
+        <button type="button" class="btn btn-default" data-dismiss="modal">No</button>
+    </div>
+</div>
+        </div>
+    </div>
+</div>
+
+
+</div>
+
+<?php include('footer.php') ?>
+
+<script>
+    function change_display_order(num) {
+        //var new_href = $('#').attr('href')
+
+        var value = num.value;
+
+        var type = num.options[num.selectedIndex].getAttribute('data-option');
+        var increased_type = parseInt(type) + 1;
+        if (isNaN(increased_type)) {
+$("#add_service_display_order").val(2);
         } else {
-
-            //use the existing category to insert services
+$("#add_service_display_order").val(increased_type);
         }
 
-        $item = array(
-            "id" => $check,
-            "category_id" => $cat_id,
-            "api_category_name" => $old_category_name[$check]
-        );
-        array_push($nextData, $item);
-    }
+        //console.log(value);
+        console.log(type);
 
-    $information = array(
-        'type' => 'success',
-        'message' => $i . ' Categories inserted succesfully',
-    );
-
-    $_SESSION["cat_data"] = $nextData;
-    $_SESSION["information"] = $information;
-
-    Header("Location:" . site_url('admin/api-services/ajax_services_last'));
-
-elseif (route(2) == "ajax_services_last") :
-
-    // unset($_SESSION['multiple']);
-    // p('done');
-
-
-
-    if ($_SESSION['multiple']['status'] != 1) {
-        $cat_data = $_SESSION["cat_data"];
-        $profit = $_SESSION["profit"];
-
-
-        $provider = $_SESSION["provider"];
-
-        $countCatToAdd = count($cat_data);
-        $dividingNumber = 5;
-        if ($countCatToAdd > $dividingNumber) :
-            $multiple = 1;
-            $totalPages = ceil($countCatToAdd / $dividingNumber);
-            $page = 1;
-            $new_cat_divided_data =  array_chunk($cat_data, $dividingNumber);
-            $multipleQuantity = array(
-                'status' => $multiple,
-                'totalPages' => $totalPages,
-                'currentPage' => $page,
-                'data' => $new_cat_divided_data,
-            );
-            $pageMessage = "Page " . $multipleQuantity['currentPage'] . " Out of " . $multipleQuantity['totalPages'] . " , Please wait the page to load all data properly!";
-            $new_cat_divided_data = $new_cat_divided_data[$multipleQuantity['currentPage'] - 1];
-            $multipleQuantity['currentPage']++;
-            $_SESSION['multiple'] = $multipleQuantity;
-        // unset($_SESSION['cat_data']);
-        else :
-            $new_cat_divided_data = $cat_data;
-            $pageMessage = "";
-        endif;
-    } else {
-        $profit = $_SESSION["profit"];
-        $provider = $_SESSION["provider"];
-        $multipleQuantity = $_SESSION['multiple'];
-
-        if ($multipleQuantity['currentPage'] <= $multipleQuantity['totalPages']) :
-            $new_cat_divided_data = $multipleQuantity['data'][$multipleQuantity['currentPage'] - 1];
-            $pageMessage = "Page " . $multipleQuantity['currentPage'] . " Out of " . $multipleQuantity['totalPages'] . " , Please wait the page to load all data properly!";
-            $multipleQuantity['currentPage']++;
-            $multipleQuantity['currentPage'] > $multipleQuantity['totalPages'] ?  $multipleQuantity['status'] = 0 :  $multipleQuantity['status'] = 1;
-            $_SESSION['multiple'] = $multipleQuantity;
-        endif;
-    }
-
-
-    if (empty($_SESSION['provider_services'])) :
-        if ($provider['api_type'] == 1) :
-            $services = $smmapi->action(['key' => $provider['api_key'], 'action' => 'services'], $provider['api_url']);
-            $_SESSION['provider_services'] = $services;
-        endif;
-    else :
-        $services =  $_SESSION['provider_services'];
-    endif;
-
-    $getServicesByCategory = array();
-
-    $servicesCount = 0;
-    foreach ($new_cat_divided_data as $category) {
-
-
-
-        $c_id = $category["category_id"];
-        $servicesArray = array();
-
-        $api_category_name = $category["api_category_name"];
-
-        foreach ($services as $service) {
-
-            if (urlencode($service->category) == urlencode($api_category_name)) {
-                $servicesCount++;
-                array_push($servicesArray, $service);
-            }
-        }
-
-        $getServicesByCategory[$c_id] = $servicesArray;
-    }
-    // p(($getServicesByCategory));
-
-    $allCategories = $conn->prepare('SELECT * FROM categories WHERE category_deleted=:del ORDER BY category_line ');
-    $allCategories->execute(["del" => 0]);
-    $allCategories = $allCategories->fetchAll(PDO::FETCH_ASSOC);
-
-    $allServices = $conn->prepare('SELECT * FROM services ORDER BY service_line');
-    $allServices->execute([]);
-    $allServices = $allServices->fetchAll(PDO::FETCH_ASSOC);
-
-
-
-elseif (route(2) == "ajax_services_addNow") :
-
-
-
-    $decodedString = json_decode($_POST["form_data"], true);
-    $newArray = array();
-    $loopCounter = 0;
-    foreach ($decodedString as $key) {
-        if ($loopCounter >= 3) {
-            $keyName = $key['name'];
-            $keyName = explode('[', $keyName);
-            $keyIndex = explode(']', $keyName[1]);
-            $keyName = $keyName[0];
-            $keyIndex = $keyIndex[0];
-            $newArray[$keyName][$keyIndex] = $key['value'];
-        }
-        $loopCounter++;
-    }
-    $postData  = $newArray;
-    $postData['service_profit_percentage'] = ($decodedString[0]['value']);
-    $postData['import'] = ($decodedString[1]['value']);
-    $postData['status'] = ($decodedString[2]['value']);
-
-
-
-    foreach ($postData as $key => $value) {
-        $$key = $value;
     }
 
 
 
-    $i = 0;
+    //refill_content_div
+    //ajax_refill_details.php
+    function refill_options(val) {
+        if (val == 1) {
+var api_selector = document.getElementsByName("api_id")[0];
+var api_id = api_selector.options[api_selector.selectedIndex].value;
+//console.log(api_id);
 
-
-
-    foreach ($checkbox as $cKey => $Cvalue) {
-
-
-        //load  each and every service here
-
-        $cat_id = $category_ids_array[$cKey];
-        $service_id = $our_services_ids_array[$cKey];
-        $service_name = mb_convert_encoding($service_name_array[$cKey], 'UTF-8', 'UTF-8');
-        $service_api_id = $api_service_id_array[$cKey];
-        $service_price = $prices_array[$cKey];
-        $service_api_price = $service_api_prices[$cKey];
-$service_min = $min_array[$cKey];
-$service_max = $max_array[$cKey];
-$service_desc = $description_array[$cKey];
-$service_type = $service_type_array[$cKey];
-$service_refill = empty($service_refill_array[$cKey]) ? 0 : $service_refill_array[$cKey];
-$provider_id = $service_provider_array[$cKey];
-$package = serviceTypeGetList($service_type);
-
-$providerData     = $conn->prepare("SELECT * FROM service_api WHERE id=:id");
-        $providerData->execute(array("id" => $provider_id));
-$providerData     = $providerData->fetch(PDO::FETCH_ASSOC);
-
-
-
-        $service_profit_percentage = $postData["service_profit_percentage"];
-
-        $detail = array(
-            "min" => $service_min,
-            "max" => $service_max,
-            "rate" => $service_api_price,
-            "currency" => $providerData["currency"],
-        );
-
-
-
-
-        if ($service_id == 0) {
-
-            // get last service line
-            $serviceLine     = $conn->prepare("SELECT service_line FROM services
-             ORDER BY service_line DESC LIMIT 1");
-            $serviceLine->execute(array());
-            $serviceLine     = $serviceLine->fetch(PDO::FETCH_ASSOC);
-
-
-            $serviceLine  = empty($serviceLine["service_line"]) ? '0' : $serviceLine["service_line"];
-
-
-        $multiName = json_encode(['en' => $service_name_array[$cKey]]);
-
-$multiDesc =  json_encode(['en' => $service_desc]);
-
-if($service_refill == 1):
-$service_refill = "true";
-else:
-$service_refill = "false";
-endif;
-
-            //insert a new service with data
-
-            $insert = $conn->prepare("INSERT INTO services SET service_api=:api,
-                 api_service=:api_service, api_detail=:detail, category_id=:category,
-                  service_line=:line, service_type=:type, service_package=:package, 
-                  service_name=:name, service_description=:desc , service_price=:price, 
-                  service_min=:min, service_max=:max , show_refill=:refill , price_profit=:price_profit, 
-name_lang=:multiName, 
-description_lang=:multi");
-            $insert = $insert->execute(array(
-                "api" => $provider_id, "api_service" => $service_api_id,
-                "detail" => json_encode($detail), "category" => $cat_id, "line" => $serviceLine + 1, "type" => 2,
-                "package" => $package, "name" => $service_name, "desc" => $service_desc,
-                "price" => $service_price, "min" => $service_min, "max" => $service_max,
-                "refill" => $service_refill, "price_profit" => $service_profit_percentage,"multiName"=>$multiName,"multi"=>$multiDesc      ));
-
-
-            
+$("#refill_content_div").html('<img src="/ajax-loader.gif" border="0" alt="loading">');
+var wurl = window.location.href;
+var post_data = {
+    method: "details",
+    type: "0",
+    uri: wurl,
+    provider_id: api_id
+};
+var xhttp = new XMLHttpRequest();
+xhttp.onreadystatechange = function() {
+    if (this.readyState == 4 && this.status == 200) {
+        //alert();
+        document.getElementById("refill_content_div").innerHTML = this.responseText;
+        //$("#subsserviceListContent").html(data);
+    }
+};
+xhttp.open("POST", "ajax_refill_details", true);
+xhttp.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
+xhttp.send(JSON.stringify(post_data));
         } else {
-
-            //update existing service by service_id
-
-            $update = $conn->prepare("UPDATE services SET service_api=:api,
-            api_service=:api_service, api_detail=:detail, category_id=:category,
-             service_type=:type, service_package=:package, 
-             service_name=:name, service_description=:desc , service_price=:price, 
-             service_min=:min, service_max=:max , show_refill=:refill , price_profit=:price_profit , 
-name_lang=:multiName, 
-description_lang=:multi
-             WHERE service_id=:service_id");
-            $update = $update->execute(array(
-                "api" => $provider_id, "api_service" => $service_api_id,
-                "detail" => json_encode($detail), "category" => $cat_id, "type" => 2,
-                "package" => $package, "name" => $service_name, "desc" => $service_desc,
-                "price" => $service_price, "min" => $service_min, "max" => $service_max,
-                "refill" => $service_refill, "price_profit" => $service_profit_percentage, "service_id" => $service_id,"multiName"=>$multiName,"multi"=>$multiDesc
-            ));
-
-            if ($update) :
-                insertAdminLog("Service Updated Through API", "service id => " . $service_id);
-            endif;
+$("#refill_content_div").html('');
         }
-        $i++;
+
+
     }
 
-    if (!$_SESSION["multiple"]["status"]) :
-        unset($_SESSION["provider"]);
-        unset($_SESSION["cat_data"]);
-        unset($_SESSION["profit"]);
-        unset($_SESSION["information"]);
-        unset($_SESSION["provider_services"]);
-        unset($_SESSION["multiple"]);
-        $postData = array();
-        header("Location:" . site_url("admin/services"));
-    else :
-        $_POST = array();
-        $postData = array();
-        header("Location:" . site_url("admin/api-services/ajax_services_last"));
-    endif;
+    function refill_send_amount_func(val) {
+        //console.log(val);
+        if (val == 1) {
+document.getElementById("refill_default_amount_div").style.display = "none";
+        } else {
+document.getElementById("refill_default_amount_div").style.display = "block";
+        }
+    }
+</script>
+<script>
+    if ((self.parent && !(self.parent === self)) &&
+        (self.parent.frames.length != 0)) {
+        self.parent.location = document.location
+    }
 
 
 
 
 
+    $("#priceService").on('keyup', function() {
+        var search = $(this).val();
+        var filter = search.toUpperCase();
 
-endif;
+        $("table tbody tr").filter(function() {
+var name = $(this).attr("data-name");
+if (name.toUpperCase().indexOf(filter) > -1) {
+    $(this).show();
+} else {
+    $(this).hide();
+}
+        });
+    });
+
+function map_categories() {
+
+  $("#bulkStatus").val("1");
+
+  $("#confirmChangeBulk").modal("show");
+
+  return false;
+}
+
+function map_services() {
+
+  document.getElementById("confirmYesBulk").disabled = true;
+
+  let import_action = $("#importValue").val();
+
+  if (import_action == "categories") {
+    var frm = $("#changebulkForm");
+    var formData = JSON.stringify(frm.serialize());
+    $("#hidden_data").attr("value", formData);
+    frm.submit();
+  } else if (import_action == "services") {
+    var frm = $("#changebulkForm");
+
+    // console.log(frm.serializeArray());
+
+    var formData = JSON.stringify(frm.serializeArray());
+    $("#services_data").attr("value", formData);
+    var frm2 = $("#servicesAddForm");
+    frm2.submit();
+  } else {
+  }
+
+
+  return false;
+}
 
 
 
-require admin_view('api-services');
+</script>
+
+ <script src="public/admin/main.js"></script>

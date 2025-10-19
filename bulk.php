@@ -1,65 +1,78 @@
-<?php
-if(!defined('BASEPATH')) {
-   die('Direct access to the script is not allowed');
+<?php include 'header.php'; ?>
+<style>
+
+
+.input {
+  width: 5%;
+  
+  
+}
+	.input2 {
+  width: 40%;
+  
+}
+	.input3 {
+  width: 7%;
+  
+}
+	.input4 {
+  width: 8%;
+  
+}
+	.input5 {
+  width: 8%;
+  
+}
+	.input6 {
+  width: 30%;
+  
 }
 
-  if( $admin["access"]["bulk"] != 1  ):
-    header("Location:".site_url("admin"));
-    exit();
-  endif;
-
-  if( $_SESSION["client"]["data"] ):
-    $data = $_SESSION["client"]["data"];
-    foreach ($data as $key => $value) {
-      $$key = $value;
-    }
-    unset($_SESSION["client"]);
-  endif;
-
- if($_SERVER["REQUEST_METHOD"] == "GET"){
-    
 
 
+</style>
 
-if(route(2) == "getData"){
-    $services       = $conn->prepare("SELECT service_id,service_name,service_min,service_max,service_price,service_description FROM services WHERE service_deleted=:deleted AND category_id=:cid") ;
+<center><h2>Bulk Service Editor</h2></center>
+<br>
+   <div class="container-fluid">
+    <a href="javascript:void(0)" class="btn btn-primary" data-toggle="modal" data-target="#modalDiv" data-action="bulkGetCategories">Select Category</a><br><br>
+       <form id="bulk-edit" action="" method="post" enctype="multipart/form-data">
+      <table class="table" style="border:1px solid #ddd">
+<thead>
+  
+<th class="input">ID</th>
+<th class="input2">Name</th>
+<th class="input3" >Min</th> 
+<th class="input4" >Max</th>
+<th class="input5" >Price</th>
+<th class="input6" >Description</th>
+            
+         </thead>
+      <tbody>
 
-    $services       -> execute(array("deleted" => 0,"cid" => $_GET["categoryId"]));
-
-    $services       = $services->fetchAll(PDO::FETCH_ASSOC);
-    
-    echo json_encode($services);exit;
-} else {
-    require admin_view('bulk');
-}
-
-}
-  if( $_POST) :
-
-        
-    $services = $_POST["service"];
-
-        foreach ($services as $id => $value):
-
-
-            $update = $conn->prepare("UPDATE services SET service_name=:name, service_min=:min, service_max=:max, service_price=:price , service_description=:description WHERE service_id=:id ");
-            $update->execute(array("description" => $_POST["desc-$id"], "price" => $_POST["price-$id"], "max" =>$_POST["max-$id"], "min" => $_POST["min-$id"] , "name" => $_POST["name-$id"], "id" => $id ));
-
-echo  $_POST["name-$id"] ;
-if( $update ):
-                header("Location:" . site_url("admin/bulk"));
-                    $_SESSION["client"]["data"]["success"] = 1;
-                    $_SESSION["client"]["data"]["successText"] = "Successful";
-              else:
-                $errorText  = "Failed";
-                $error      = 1;
-	header("Location:" . site_url("admin/bulk"));	
-
-	            endif;
+</tbody>
+</table>
+<br>
+<center><button type="submit" class="btn btn-primary" >Save Changes</button></center>
+</form>
+         </div>
 
 
-endforeach;
-        
-endif;
+<div class="modal modal-center fade" id="confirmChange" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" data-backdrop="static">
+ <div class="modal-dialog modal-dialog-center" role="document">
+   <div class="modal-content">
+     <div class="modal-body text-center">
+       <h4>Are you sure you want to update the status?</h4>
+       <div align="center">
+         <a class="btn btn-primary" href="" id="confirmYes">Yes</a>
+         <button type="button" class="btn btn-default" data-dismiss="modal">No</button>
+       </div>
+     </div>
+   </div>
+ </div>
+</div>
 
 
+
+
+<?php include 'footer.php'; ?>

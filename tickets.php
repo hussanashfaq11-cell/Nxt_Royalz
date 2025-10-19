@@ -1,394 +1,168 @@
-<?php
-if(!defined('BASEPATH')) {
-   die('Direct access to the script is not allowed');
-}
-if ($admin["access"]["tickets"] != 1):
-    header("Location:" . site_url("admin"));
-    exit();
-endif;
-if ($_SESSION["client"]["data"]):
-    $data = $_SESSION["client"]["data"];
-    foreach ($data as $key => $value) {
-        $$key = $value;
-    }
-    unset($_SESSION["client"]);
-endif;
-if (!route(2)):
-    $page = 1;
-elseif (is_numeric(route(2))):
-    $page = route(2);
-elseif (!is_numeric(route(2))):
-    $action = route(2);
-endif;
-if (empty($action)):
-    if ($_GET["search"] == "unread" && $_GET["search"]):
-        $search = " client_new='2' ";
-        $count = $conn->prepare("SELECT * FROM tickets INNER JOIN clients ON clients.client_id = tickets.client_id WHERE {$search}");
-        $count->execute(array());
-        $count = $count->rowCount();
-        $search = "WHERE {$search}";
-        $search_link = "?search=unread";
-    elseif ($_GET["search_type"] == "client" && $_GET["search_type"]):
-        $search_where = $_GET["search_type"];
-        $search_word = $_GET["search"];
-        $clients = $conn->prepare("SELECT client_id FROM clients WHERE username LIKE '%" . $search_word . "%' ");
-        $clients->execute(array());
-        $clients = $clients->fetchAll(PDO::FETCH_ASSOC);
-        $id = "(";
-        foreach ($clients as $client) {
-            $id.= $client["client_id"] . ",";
-        }
-        if (substr($id, -1) == ","):
-            $id = substr($id, 0, -1);
-        endif;
-        $id.= ")";
-        $search = " tickets.client_id IN " . $id;
-        $count = $conn->prepare("SELECT * FROM tickets INNER JOIN clients ON clients.client_id = tickets.client_id WHERE {$search}");
-        $count->execute(array());
-        $count = $count->rowCount();
-        $search = "WHERE {$search}";
-        $search_link = "?search=" . $search_word . "&search_type=" . $search_where;
-    elseif ($_GET["status"]):
-        $search = " status='" . $_GET["status"] . "' ";
-        $count = $conn->prepare("SELECT * FROM tickets INNER JOIN clients ON clients.client_id = tickets.client_id WHERE {$search}");
-        $count->execute(array());
-        $count = $count->rowCount();
-        $search = "WHERE {$search}";
-        $search_link = "?status=" . $_GET["status"];
-    elseif ($_GET["search"]):
-        $search_where = $_GET["search_type"];
-        $search_word = $_GET["search"];
-        $search = $search_where . " LIKE '%" . $search_word . "%'";
-        $count = $conn->prepare("SELECT * FROM tickets INNER JOIN clients ON clients.client_id = tickets.client_id WHERE {$search}");
-        $count->execute(array());
-        $count = $count->rowCount();
-        $search = "WHERE {$search}";
-        $search_link = "?search=" . $search_word . "&search_type=" . $search_where;
-    else:
-        $count = $conn->prepare("SELECT * FROM tickets INNER JOIN clients ON clients.client_id = tickets.client_id");
-        $count->execute(array());
-        $count = $count->rowCount();
-    endif;
-    $to = 50;
-    $pageCount = ceil($count / $to);
-    if ($page > $pageCount):
-        $page = 1;
-    endif;
-    $where = ($page * $to) - $to;
-    $paginationArr = ["count" => $pageCount, "current" => $page, "next" => $page + 1, "previous" => $page - 1];
-    $tickets = $conn->prepare("SELECT * FROM tickets INNER JOIN clients ON clients.client_id = tickets.client_id $search ORDER BY FIELD(status, 'pending', 'answered', 'closed'),lastupdate_time DESC LIMIT $where,$to ");
-    $tickets->execute(array());
-    $tickets = $tickets->fetchAll(PDO::FETCH_ASSOC);
-    require admin_view('tickets');
-elseif (route(2) == "read"):
-    if (!countRow(["table" => "tickets", "where" => ["ticket_id" => route(3) ]])):
-        header("Location:" . site_url("admin/tickets"));
-        exit();
-    endif;
-$id = route(3);
-   $ticket = $conn->prepare("SELECT * FROM tickets  WHERE ticket_id=:id ");
-    $ticket->execute(array("id"=>$id));
-    $ticket = $ticket->fetchAll(PDO::FETCH_ASSOC);
-if (route(4) == "delete"):
-    $delete = $conn->prepare("DELETE FROM ticket_reply WHERE id=:t_id ");
-    $delete->execute(array("t_id"=>route(3)));
-endif;
-    if ($_POST):
-        
-        $message = htmlspecialchars($_POST["message"]);
-       
-        if (strlen($message) < 3):
-            $error = 1;
-            $errorText = "Message should be at least 3 chracters.";
-        else:
-            $conn->beginTransaction();
-            $update = $conn->prepare("UPDATE tickets SET canmessage=:canmessage, status=:status, lastupdate_time=:time, support_new=:new WHERE ticket_id=:t_id ");
-            $update = $update->execute(array("t_id" => route(3), "time" => date("Y-m-d H:i:s"), "status" => "answered", "canmessage" => 2, "new" => 2));
-             $tr_arr =array(
-                "t_id" => route(3), 
-                "time" => date("Y-m-d H:i:s"),
-                "support" => '2',
-                "message" => $message,
-                "client_id"=>'0'
-                );
-           // print_r($tr_arr); die;
-                   $insert = $conn->prepare("INSERT INTO ticket_reply SET ticket_id=:t_id, time=:time, support=:support, message=:message, client_id=:client_id");
-            $insert = $insert->execute($tr_arr);
-           // echo $update->debugDumpParams(); die;
-            if ($insert && $update):
+<?php include 'header.php'; ?>
+<div class="container-fluid">
+   <ul class="nav nav-tabs">
+      <li class="p-b"><button type="button" class="btn btn-default" data-toggle="modal" data-target="#modalDiv" data-action="new_ticket">New Ticket</button></li>
+      <li class="pull-right custom-search">
+         <form class="form-inline" action="" method="get">
+            <div class="input-group">
+               <input type="text" name="search" class="form-control" value="<?=$search_word?>" placeholder="Search">
+               <span class="input-group-btn search-select-wrap">
+                  <select class="form-control search-select" name="search_type">
+                     <option value="subject" <?php if( $search_where == "subject" ): echo 'selected'; endif; ?> >Subject</option>
+                     <option value="client" <?php if( $search_where == "client" ): echo 'selected'; endif; ?> >Username</option>
+                  </select>
+                  <button type="submit" class="btn btn-default"><span class="fa fa-search" aria-hidden="true"></span></button>
+               </span>
+            </div>
+         </form>
+      </li>
+       <li class="pull-right export-li">
+          <?php if($_GET["search"] == 'unread'){ ?>
+         <a href="<?=site_url("admin/tickets")?>" class="export">
+         <span class="export-title">Show all</span>
+         </a>
+         <?php }else{ ?>
+                      <a href="<?=site_url("admin/tickets")?>?search=unread" class="export">
+         <span class="export-title">Show Unread</span>
+         </a>
+             
+        <?php } ?>
+      </li>
+   </ul>
+<div class="row row-xs">
 
-if ($settings["alert_newmessage"] ==  2) {
-$htmlContent = "Hello,
-You have a new message in the ticket
-Follow the link below to see the message: " . site_url() . "tickets/".route(3)."";
-$to = $user['email']; 
-$from = $settings["smtp_user"]; 
-$fromName = $settings["site_seo"]; 
-$subject = "New Message"; 
-$headers = "MIME-Version: 1.0" . "\r\n"; 
-$headers .= "Content-type:text/html;charset=UTF-8" . "\r\n"; 
-$headers .= 'From: '.$fromName.'<'.$from.'>' . "\r\n"; 
-$headers .= 'Cc: '.$from . "\r\n"; 
-$headers .= 'Bcc: '.$from . "\r\n";  
- if(mail($to, $subject, $htmlContent, $headers)){ 
-}else{ 
-     } 
+            <div class="col">
+                <div class="card dwd-100">
+                    <div class="card-body pd-20 table-responsive dof-inherit">
+                        <div class="container-fluid pd-t-20 pd-b-20">
+                            <ul class="nav nav-tabs pull-right dborder-0">
+                                <li class="pull-right export-li">
+                                    
+                                </li>
+                            </ul>
+   <table class="table">
+      <thead>
+         <tr>
+            <th class="checkAll-th">
+               <div class="checkAll-holder">
+                  <input type="checkbox" id="checkAll">
+                  <input type="hidden" id="checkAllText" value="order">
+               </div>
+               <div class="action-block">
+                  <ul class="action-list">
+                     <li><span class="countOrders"></span> Tickets selected</li>
+                     <li>
+                        <div class="dropdown">
+                           <button type="button" class="btn btn-default btn-xs dropdown-toggle btn-xs-caret" data-toggle="dropdown"> Bulk actions <span class="caret"></span></button>
+                           <ul class="dropdown-menu">
+                              <li>
+                                 <a class="bulkorder" data-type="unread">Mark all as unread</a>
+                                 <a class="bulkorder" data-type="lock">Lock all</a>
+                                 <a class="bulkorder" data-type="unlock">Unlcok all</a>
+                                 <a class="bulkorder" data-type="close">Close all</a>
+                                 <a class="bulkorder" data-type="pending">Mark as awaiting answer</a>
+                                 <a class="bulkorder" data-type="answered">Mark as answered</a>
+<a class="bulkorder" data-type="delete">Delete Selected</a>
+                              </li>
+                           </ul>
+                        </div>
+                     </li>
+                  </ul>
+               </div>
+            </th>
+            <th width="5%" class="p-l">ID</th>
+            <th width="15%">Member</th>
+            <th width="50%">Subject</th>
+            <th width="10%" class="dropdown-th">
+               <div class="dropdown">
+                  <button class="btn btn-th btn-default dropdown-toggle" type="button" id="dropdownMenu1" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
+                  Status <span class="caret"></span>
+                  </button>
+                  <ul class="dropdown-menu" aria-labelledby="dropdownMenu1">
+                     <li class="active"><a href="<?=site_url("admin/tickets")?>">All (<?=countRow(["table"=>"tickets"]);?>)</a></li>
+                     <li><a href="<?=site_url("admin/tickets")?>?status=pending">Pending (<?=countRow(["table"=>"tickets","where"=>["status"=>"pending"]]);?>)</a></li>
+                     <li><a href="<?=site_url("admin/tickets")?>?status=answered">Answered (<?=countRow(["table"=>"tickets","where"=>["status"=>"answered"]]);?>)</a></li>
+                     <li><a href="<?=site_url("admin/tickets")?>?status=closed">Closed (<?=countRow(["table"=>"tickets","where"=>["status"=>"closed"]]);?>)</a></li>
+                  </ul>
+               </div>
+            </th>
+            <th width="10%">Creation Date</th>
+            <th width="10%" nowrap="">Last Updated</th>
+            <th></th>
+         </tr>
+      </thead>
+      <form id="changebulkForm" action="<?php echo site_url("admin/tickets/multi-action") ?>" method="post">
+        <tbody>
+          <?php foreach($tickets as $ticket ): ?>
+              <tr>
+                 <td><input type="checkbox" class="selectOrder" name="ticket[<?php echo $ticket["ticket_id"] ?>]" value="1" style="border:1px solid #fff"></td>
+                 <td class="p-l"><?php echo $ticket["ticket_id"] ?></td>
+                 <td><?php echo $ticket["username"] ?></td>
+                 <td class="subject"><?php  if( $ticket["canmessage"] == 1 ): echo '<i class="fa fa-lock"></i> '; endif;  ?><a href="<?=site_url("admin/tickets/read/".$ticket["ticket_id"])?>"><?php if( $ticket["client_new"] == 2 ): echo "<b>".$ticket["subject"]."</b>"; else: echo $ticket["subject"]; endif; ?></a></td>
+                 <td><?php echo $ticket["status"] ?></td>
+                 <td nowrap=""><?php echo $ticket["time"] ?></td>
+                 <td nowrap=""><?php echo $ticket["lastupdate_time"] ?></td>
+                 <td class="service-block__action">
+                   <div class="dropdown pull-right">
+                     <button type="button" class="btn btn-default btn-xs dropdown-toggle btn-xs-caret" data-toggle="dropdown">Options <span class="caret"></span></button>
+                     <ul class="dropdown-menu">
+                       <?php if( $ticket["client_new"] == 1 ): ?>
+                         <li><a href="<?php echo site_url("admin/tickets/unread/".$ticket["ticket_id"]) ?>">Mark as Unread</a></li>
+                       <?php endif; if( $ticket["canmessage"] == 2 ): ?>
+                         <li><a href="<?php echo site_url("admin/tickets/lock/".$ticket["ticket_id"]) ?>">Lock support request</a></li>
+                       <?php else: ?>
+                         <li><a href="<?php echo site_url("admin/tickets/unlock/".$ticket["ticket_id"]) ?>">Unlock support request</a></li>
+                       <?php endif; if( $ticket["status"] != "closed" ): ?>
+                         <li><a href="<?php echo site_url("admin/tickets/close/".$ticket["ticket_id"]) ?>">Close support request</a></li>
+                       <?php endif; ?>
+<li><a href="<?php echo site_url("admin/tickets/delete/".$ticket["ticket_id"]) ?>">Delete</a></li>
+                     </ul>
+                   </div>
+                 </td>
+              </tr>
+            <?php endforeach; ?>
+        </tbody>
+        <input type="hidden" name="bulkStatus" id="bulkStatus" value="0">
+      </form>
+   </table>
+   <?php if( $paginationArr["count"] > 1 ): ?>
+     <div class="row">
+        <div class="col-sm-8">
+           <nav>
+              <ul class="pagination">
+                <?php if( $paginationArr["current"] != 1 ): ?>
+                 <li class="prev"><a href="<?php echo site_url("admin/tickets/1".$search_link) ?>">&laquo;</a></li>
+                 <li class="prev"><a href="<?php echo site_url("admin/tickets/".$paginationArr["previous"].$search_link) ?>">&lsaquo;</a></li>
+                 <?php
+                     endif;
+                     for ($page=1; $page<=$pageCount; $page++):
+                       if( $page >= ($paginationArr['current']-9) and $page <= ($paginationArr['current']+9) ):
+                 ?>
+                 <li class="<?php if( $page == $paginationArr["current"] ): echo "active"; endif; ?> "><a href="<?php echo site_url("admin/tickets/".$page.$search_link) ?>"><?=$page?></a></li>
+                 <?php endif; endfor;
+                       if( $paginationArr["current"] != $paginationArr["count"] ):
+                 ?>
+                 <li class="next"><a href="<?php echo site_url("admin/tickets/".$paginationArr["next"].$search_link) ?>" data-page="1">&rsaquo;</a></li>
+                 <li class="next"><a href="<?php echo site_url("admin/tickets/".$paginationArr["count"].$search_link) ?>" data-page="1">&raquo;</a></li>
+                 <?php endif; ?>
+              </ul>
+           </nav>
+        </div>
+     </div>
+   <?php endif; ?>
+</div>
+<div class="modal modal-center fade" id="confirmChange" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" data-backdrop="static">
+   <div class="modal-dialog modal-dialog-center" role="document">
+      <div class="modal-content">
+         <div class="modal-body text-center">
+            <h4>Are you sure you want to update the status?</h4>
+            <div align="center">
+               <a class="btn btn-primary" href="" id="confirmYes">Yes</a>
+               <button type="button" class="btn btn-default" data-dismiss="modal">No</button>
+            </div>
+         </div>
+      </div>
+   </div>
+</div>
 
-
-} 
-               //  echo "updated"; die;
-                $conn->commit();
-                header("Location:" . site_url("admin/tickets/read/" . route(3)));
-                $_SESSION["client"]["data"]["success"] = 1;
-                $_SESSION["client"]["data"]["successText"] = "Successful";
-            else:
-                //echo "not updated"; die;
-                $conn->rollBack();
-                header("Location:" . site_url("admin/tickets/read/" . route(3)));
-                $_SESSION["client"]["data"]["error"] = 1;
-                $_SESSION["client"]["data"]["errorText"] = "Error";
-            endif;
-        endif;
-    endif;
-    $update = $conn->prepare("UPDATE tickets SET client_new=:new WHERE ticket_id=:t_id ");
-    $update->execute(array("t_id" => route(3), "new" => 1));
-    $ticketMessage = $conn->prepare("SELECT ticket_reply.*,tickets.subject,tickets.client_new,tickets.status,tickets.canmessage,tickets.client_id,clients.username  FROM ticket_reply INNER JOIN tickets ON ticket_reply.ticket_id = tickets.ticket_id INNER JOIN clients ON clients.client_id = tickets.client_id WHERE ticket_reply.ticket_id=:t_id ORDER BY ticket_reply.id DESC ");
-    $ticketMessage->execute(array("t_id" => route(3)));
-    $ticketMessage = $ticketMessage->fetchAll(PDO::FETCH_ASSOC);
-    require admin_view('tickets_read');
-elseif (route(2) == "unread"):
-    if (!countRow(["table" => "tickets", "where" => ["ticket_id" => route(3) ]])):
-        header("Location:" . site_url("admin/tickets"));
-        exit();
-    endif;
-    $update = $conn->prepare("UPDATE tickets SET client_new=:new WHERE ticket_id=:t_id ");
-    $update->execute(array("t_id" => route(3), "new" => 2));
-    if ($update):
-        header("Location:" . site_url("admin/tickets"));
-        $_SESSION["client"]["data"]["success"] = 1;
-        $_SESSION["client"]["data"]["successText"] = "Successful";
-    else:
-        header("Location:" . site_url("admin/tickets"));
-        $_SESSION["client"]["data"]["error"] = 1;
-        $_SESSION["client"]["data"]["errorText"] = "Error";
-    endif;
-elseif (route(2) == "lock"):
-    if (!countRow(["table" => "tickets", "where" => ["ticket_id" => route(3) ]])):
-        header("Location:" . site_url("admin/tickets"));
-        exit();
-    endif;
-    $update = $conn->prepare("UPDATE tickets SET canmessage=:can WHERE ticket_id=:t_id ");
-    $update->execute(array("t_id" => route(3), "can" => 1));
-    if ($update):
-        header("Location:" . site_url("admin/tickets"));
-        $_SESSION["client"]["data"]["success"] = 1;
-        $_SESSION["client"]["data"]["successText"] = "Successful";
-    else:
-        header("Location:" . site_url("admin/tickets"));
-        $_SESSION["client"]["data"]["error"] = 1;
-        $_SESSION["client"]["data"]["errorText"] = "Error";
-    endif;
-elseif (route(2) == "delete"):
-if (!countRow(["table" => "tickets", "where" => ["ticket_id" => route(3) ]])):
-        header("Location:" . site_url("admin/tickets"));
-        exit();
-    endif;
-    $delete = $conn->prepare("DELETE FROM tickets WHERE ticket_id=:t_id ");
-    $delete->execute(array("t_id"=>route(3)));
-    if ($delete):
-        header("Location:" . site_url("admin/tickets"));
-        $_SESSION["client"]["data"]["success"] = 1;
-        $_SESSION["client"]["data"]["successText"] = "Successful";
-    else:
-        header("Location:" . site_url("admin/tickets"));
-        $_SESSION["client"]["data"]["error"] = 1;
-        $_SESSION["client"]["data"]["errorText"] = "Error";
-    endif;
-elseif (route(2) == "remove"):
-    $ticket = $conn->prepare("SELECT * FROM ticket_reply WHERE id=:id");
-$ticket->execute(array("id"=>route(3)));
-$ticket = $ticket->fetch(PDO::FETCH_ASSOC);
-    $delete = $conn->prepare("DELETE FROM ticket_reply WHERE id=:t_id ");
-    $delete->execute(array("t_id"=>route(3)));
-$ticketid = $ticket["ticket_id"];
-    if ($delete):
-        header("Location:" . site_url("admin/tickets/read/$ticketid"));;
-        $_SESSION["client"]["data"]["success"] = 1;
-        $_SESSION["client"]["data"]["successText"] = "Successful";
-    else:
-header("Location:" . site_url("admin/tickets/read/$ticketid"));
-        $_SESSION["client"]["data"]["error"] = 1;
-        $_SESSION["client"]["data"]["errorText"] = "Error";
-    endif;
-elseif (route(2) == "unlock"):
-    if (!countRow(["table" => "tickets", "where" => ["ticket_id" => route(3) ]])):
-        header("Location:" . site_url("admin/tickets"));
-        exit();
-    endif;
-    $update = $conn->prepare("UPDATE tickets SET canmessage=:can WHERE ticket_id=:t_id ");
-    $update->execute(array("t_id" => route(3), "can" => 2));
-    if ($update):
-        header("Location:" . site_url("admin/tickets"));
-        $_SESSION["client"]["data"]["success"] = 1;
-        $_SESSION["client"]["data"]["successText"] = "Successful";
-    else:
-    header("Location:" . site_url("admin/tickets"));
-        $_SESSION["client"]["data"]["error"] = 1;
-        $_SESSION["client"]["data"]["errorText"] = "Error";
-    endif;
-elseif (route(2) == "close"):
-    if (!countRow(["table" => "tickets", "where" => ["ticket_id" => route(3) ]])):
-        header("Location:" . site_url("admin/tickets"));
-        exit();
-    endif;
-    $update = $conn->prepare("UPDATE tickets SET status=:status WHERE ticket_id=:t_id ");
-    $update->execute(array("t_id" => route(3), "status" => "closed"));
-    if ($update):
-        header("Location:" . site_url("admin/tickets"));
-        $_SESSION["client"]["data"]["success"] = 1;
-        $_SESSION["client"]["data"]["successText"] = "Successful";
-    else:
-        header("Location:" . site_url("admin/tickets"));
-        $_SESSION["client"]["data"]["error"] = 1;
-        $_SESSION["client"]["data"]["errorText"] = "Error";
-    endif;
-
-elseif( route(2) == "multi-action" ):
-          $tickets  = $_POST["ticket"];
-          $action   = $_POST["bulkStatus"];
-              if ($action == "unread"):
-        foreach ($tickets as $id => $value):
-            $update = $conn->prepare("UPDATE tickets SET client_new=:new WHERE ticket_id=:id ");
-            $update->execute(array("new" => 2, "id" => $id));
-        endforeach;
-elseif ($action == "delete"):
-        foreach ($tickets as $id => $value):
-            $delete = $conn->prepare("DELETE FROM tickets WHERE ticket_id=:t_id ");
-    $delete->execute(array("t_id"=>$id));
-        endforeach;
-    elseif ($action == "lock"):
-        foreach ($tickets as $id => $value):
-            $update = $conn->prepare("UPDATE tickets SET canmessage=:can WHERE ticket_id=:id ");
-            $update->execute(array("can" => 1, "id" => $id));
-        endforeach;
-    elseif ($action == "unlock"):
-        foreach ($tickets as $id => $value):
-            $update = $conn->prepare("UPDATE tickets SET canmessage=:can WHERE ticket_id=:id ");
-            $update->execute(array("can" => 2, "id" => $id));
-        endforeach;
-    elseif ($action == "close"):
-        foreach ($tickets as $id => $value):
-            $update = $conn->prepare("UPDATE tickets SET status=:status, canmessage=:can WHERE ticket_id=:id ");
-            $update->execute(array("status" => "closed", "id" => $id, "can" => 2));
-        endforeach;
-    elseif ($action == "pending"):
-        foreach ($tickets as $id => $value):
-            $update = $conn->prepare("UPDATE tickets SET status=:status, canmessage=:can WHERE ticket_id=:id ");
-            $update->execute(array("status" => "pending", "id" => $id, "can" => 2));
-        endforeach;
-    elseif ($action == "answered"):
-        foreach ($tickets as $id => $value):
-            $update = $conn->prepare("UPDATE tickets SET status=:status, canmessage=:can WHERE ticket_id=:id ");
-            $update->execute(array("status" => "answered", "id" => $id, "can" => 2));
-        endforeach;
-    endif;
-    header("Location:" . site_url("admin/tickets"));
-
- elseif( $action == "edit" ):
-    if( $_POST ):
-      foreach ($_POST as $key => $value) {
-        $$key = $value;
-      }
-      
-      if( empty($description) ):
-        $error    = 1;
-        $errorText= "Message cannot be empty";
-        $icon     = "error";
-      else:
-          $conn->beginTransaction();
-          
-    $update = $conn->prepare("UPDATE ticket_reply SET message=:message WHERE id=:id ");
-    $update->execute(array("id"=>route(3),"message"=>$description));
-   
-          if( $update ):
-            $conn->commit();
-            $error    = 1;
-            $errorText= "Transaction successful";
-            $icon     = "success";
-          else:
-            $conn->rollBack();
-            $error    = 1;
-            $errorText= "Operation failed";
-            $icon     = "error";
-          endif;
-      endif;
-      echo json_encode(["t"=>"error","m"=>$errorText,"s"=>$icon,"r"=>$referrer]);
-    endif;    
-  
-elseif ($action == "new"):
-    if ($_POST):
-        foreach ($_POST as $key => $value) {
-            $$key = $value;
-        }
-        $userRow = $conn->prepare("SELECT * FROM clients WHERE username=:username ");
-        $userRow->execute(array("username" => $username));
-        $userDetail = $userRow->fetch(PDO::FETCH_ASSOC);
-        if (!$userRow->rowCount()):
-            $error = 1;
-            $errorText = "User not found";
-            $icon = "error";
-        elseif (empty($subject)):
-            $error = 1;
-            $errorText = "Subject can not be empty";
-            $icon = "error";
-        elseif (empty($message)):
-            $error = 1;
-            $errorText = "Message can not be empty";
-            $icon = "error";
-        else:
-            $conn->beginTransaction();
-            $insert = $conn->prepare("INSERT INTO tickets SET client_id=:c_id, subject=:subject, support_new=:support_new, client_new=:client_new, time=:time, lastupdate_time=:last_time ");
-            $insert = $insert->execute(array("c_id" => $userDetail["client_id"], "subject" => htmlspecialchars($subject), "support_new" => 2, "client_new" => 1, "time" => date("Y.m.d H:i:s"), "last_time" => date("Y.m.d H:i:s")));
-
-
-
-            if ($insert) {
-                $ticket_id = $conn->lastInsertId();
-if ($settings["alert_newmessage"] ==  2) {
-$htmlContent = "Hello,
-You have a new ticket from ". $settings["site_name"]. "
-Follow the link below to see the message: " . site_url() . "tickets/$ticket_id";
-$to = $userDetail['email']; 
-$from = $settings["smtp_user"];
-$fromName = $settings["site_seo"]; 
-$subject = "New Message"; 
-$headers = "MIME-Version: 1.0" . "\r\n"; 
-$headers .= "Content-type:text/html;charset=UTF-8" . "\r\n"; 
-$headers .= 'From: '.$fromName.'<'.$from.'>' . "\r\n"; 
-$headers .= 'Cc: '.$from . "\r\n"; 
-$headers .= 'Bcc: '.$from . "\r\n"; 
- if(mail($to, $subject, $htmlContent, $headers)){ 
-}else{ 
-     } 
-
-
-} 
-            }
-            $insert2 = $conn->prepare("INSERT INTO ticket_reply SET ticket_id=:t_id, client_id=:c_id, support=:support, message=:message, time=:time ");
-            $insert2 = $insert2->execute(array("t_id" => $ticket_id, "c_id" => $user["client_id"], "support" => 2, "message" => htmlspecialchars($message), "time" => date("Y.m.d H:i:s")));
-            if ($insert && $insert2):
-                $conn->commit();
-                $referrer = site_url("admin/tickets");
-                $error = 1;
-                $errorText = "Successful";
-                $icon = "success";
-            else:
-                $conn->rollBack();
-                $error = 1;
-                $errorText = "Error";
-                $icon = "error";
-            endif;
-        endif;
-        echo json_encode(["t" => "error", "m" => $errorText, "s" => $icon, "r" => $referrer]);
-    endif;
-endif;
+<?php include 'footer.php'; ?>

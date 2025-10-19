@@ -1,156 +1,141 @@
-<?php
-if(!defined('BASEPATH')) {
-   die('Direct access to the script is not allowed');
-}
-
-  if( $admin["access"]["dripfeed"] != 1  ):
-    header("Location:".site_url("admin"));
-    exit();
-  endif;
 
 
-  if( $_SESSION["client"]["data"] ):
-    $data = $_SESSION["client"]["data"];
-    foreach ($data as $key => $value) {
-      $$key = $value;
-    }
-    unset($_SESSION["client"]);
-  endif;
+<?php include 'header.php'; ?>
 
-    if( route(2) && is_numeric(route(2)) ):
-      $page = route(2);
-    else:
-      $page = 1;
-    endif;
+<div class="content-body">
+    <div class="pd-x-0">
+        <div class="d-sm-flex align-items-center justify-content-between mg-b-20 mg-lg-b-25 mg-xl-b-30">
+            
+        <div class="row row-xs">
 
-    $statusList = ["all","active","paused","completed","canceled","expired","limit"];
-    if( route(3) && in_array(route(3),$statusList) ):
-      $status   = route(3);
-    elseif( !route(3) || !in_array(route(3),$statusList) ):
-      $status   = "all";
-    endif;
+            <div class="col">
+                <div class="card dwd-100">
+                    <div class="card-body pd-20 table-responsive dof-inherit">
 
-    if( $_GET["search_type"] == "username" && $_GET["search"] ):
-      $search_where = $_GET["search_type"];
-      $search_word  = urldecode($_GET["search"]);
-      $clients      = $conn->prepare("SELECT client_id FROM clients WHERE username LIKE '%".$search_word."%' ");
-      $clients     -> execute(array());
-      $clients      = $clients->fetchAll(PDO::FETCH_ASSOC);
-      $id=  "("; foreach ($clients as $client) { $id.=$client["client_id"].","; } if( substr($id,-1) == "," ):  $id = substr($id,0,-1); endif; $id.=")";
-      $search       = " orders.client_id IN ".$id;
-      $count        = $conn->prepare("SELECT * FROM orders INNER JOIN clients ON clients.client_id = orders.client_id WHERE {$search} && orders.dripfeed='2' && orders.subscriptions_type='1' ");
-      $count        -> execute(array());
-      $count        = $count->rowCount();
-      $search       = "WHERE {$search} && orders.dripfeed='2' && orders.subscriptions_type='1' ";
-      $search_link  = "?search=".$search_word."&search_type=".$search_where;
-    elseif( $_GET["search_type"] == "order_id" && $_GET["search"] ):
-      $search_where = $_GET["search_type"];
-      $search_word  = urldecode($_GET["search"]);
-      $count        = $conn->prepare("SELECT * FROM orders INNER JOIN clients ON clients.client_id = orders.client_id WHERE orders.order_id LIKE '%".$search_word."%' && orders.dripfeed='2' && orders.subscriptions_type='1' ");
-      $count        -> execute(array());
-      $count        = $count->rowCount();
-      $search       = "WHERE orders.order_id LIKE '%".$search_word."%'  && orders.dripfeed='2' && orders.subscriptions_type='1' ";
-      $search_link  = "?search=".$search_word."&search_type=".$search_where;
-    elseif( $_GET["search_type"] == "order_url" && $_GET["search"] ):
-      $search_where = $_GET["search_type"];
-      $search_word  = urldecode($_GET["search"]);
-      $count        = $conn->prepare("SELECT * FROM orders INNER JOIN clients ON clients.client_id = orders.client_id WHERE orders.order_url LIKE '%".$search_word."%' && orders.dripfeed='2' && orders.subscriptions_type='1' ");
-      $count        -> execute(array());
-      $count        = $count->rowCount();
-      $search       = "WHERE orders.order_url LIKE '%".$search_word."%'  && orders.dripfeed='2' && orders.subscriptions_type='1' ";
-      $search_link  = "?search=".$search_word."&search_type=".$search_where;
-    elseif( $status != "all" ):
-      $count          = $conn->prepare("SELECT * FROM orders WHERE dripfeed_status=:status && dripfeed=:dripfeed && subscriptions_type=:sub ");
-      $count        ->execute(array("dripfeed"=>1,"sub"=>2,"status"=>$status));
-      $count          = $count->rowCount();
-      $search         = "WHERE orders.dripfeed_status='".$status."' && orders.dripfeed='2' && orders.subscriptions_type='1' ";
-    elseif( $status == "all" ):
-      $count          = $conn->prepare("SELECT * FROM orders WHERE dripfeed=:dripfeed && subscriptions_type=:sub ");
-      $count        ->execute(array("dripfeed"=>2,"sub"=>1));
-      $count          = $count->rowCount();
-      $search         = "WHERE orders.dripfeed='2' && orders.subscriptions_type='1' ";
-    endif;
-    $to             = 50;
-    $pageCount      = ceil($count/$to); if( $page > $pageCount ): $page = 1; endif;
-    $where          = ($page*$to)-$to;
-    $paginationArr  = ["count"=>$pageCount,"current"=>$page,"next"=>$page+1,"previous"=>$page-1];
-    $orders         = $conn->prepare("SELECT * FROM orders INNER JOIN clients ON clients.client_id=orders.client_id INNER JOIN services ON services.service_id=orders.service_id $search ORDER BY orders.order_id DESC LIMIT $where,$to ");
-    $orders         -> execute(array());
-    $orders         = $orders->fetchAll(PDO::FETCH_ASSOC);
-    function orderStatu($statu){
+                        <div class="container-fluid">
+                            <ul class="nav nav-tabs mg-b-20 dborder-0">
+                                <li class="<?php if( $status == "all"): echo "active"; endif; ?>"><a href="<?=site_url("admin/dripfeeds")?>" class="btn btn-outline-light mg-r-5">All</a></li>
+                                <li class="<?php if( $status == "active"): echo "active"; endif; ?>"><a href="<?=site_url("admin/dripfeeds/1/active")?>" class="btn btn-outline-light mg-r-5">Active</a></li>
+                                <li class="<?php if( $status == "completed"): echo "active"; endif; ?>"><a href="<?=site_url("admin/dripfeeds/1/completed")?>" class="btn btn-outline-light mg-r-5">Completed</a></li>
+                                <li class="<?php if( $status == "canceled"): echo "active"; endif; ?>"><a href="<?=site_url("admin/dripfeeds/1/canceled")?>" class="btn btn-outline-light mg-r-5">Canceled</a></li>
+                                 <li class="pull-right custom-search">
+         <form class="form-inline" action="<?=site_url("admin/dripfeeds")?>" method="get">
+            <div class="input-group">
+               <input type="text" name="search" class="form-control" value="<?=$search_word?>" placeholder="Search">
+               <span class="input-group-btn search-select-wrap">
+                  <select class="form-control search-select" name="search_type">
+                     <option value="order_id" <?php if( $search_where == "order_id" ): echo 'selected'; endif; ?> >Order ID</option>
+                     <option value="order_url" <?php if( $search_where == "order_url" ): echo 'selected'; endif; ?> >Link</option>
+                     <option value="username" <?php if( $search_where == "username" ): echo 'selected'; endif; ?> >Username</option>
+                  </select>
+                  <button type="submit" class="btn btn-default"><span class="fa fa-search" aria-hidden="true"></span></button>
+               </span>
+            </div>
+         </form>
+      </li>
+   </ul>
+                            </ul>
 
-      switch ($statu) {
-        case 'active':
-          $statu  = "Aktif";
-        break;
-        case 'completed':
-          $statu  = "Tamamlandı";
-        break;
-        case 'canceled':
-          $statu  = "İptal";
-        break;
-      }
+        <div class="table-responsive">
+                            <table class="table" id="dt">
+                                <thead>
+                                    <tr>
+                                        <th class="checkAll-th">
+                                            <div class="checkAll-holder">
+                                                <input type="checkbox" id="checkAll">
+                                                <input type="hidden" id="checkAllText" value="order">
+                                            </div>
+                                            <div class="action-block">
+                                                <ul class="action-list">
+                                                    <li><span class="countOrders"></span> orders selected</li>
+                                                    <li>
+                                                        <div class="dropdown">
+                                                            <button type="button" class="btn btn-primary btn-xs dropdown-toggle btn-xs-caret" data-toggle="dropdown"> Bulk actions</button>
+                                                            <ul class="dropdown-menu">
+                                                                <li>
+                                                                    <?php if( $status  ==  "active" ): ?>
+                                                                    <a class="bulkorder" data-type="completed">Completed All</a>
+                                                                    <a class="bulkorder" data-type="canceled">Canceled All</a>
+                                                                    <a class="bulkorder" data-type="canceledbalance">Refund Balance All</a>
+                                                                    <?php endif; ?>
+                                                                </li>
+                                                            </ul>
+                                                        </div>
+                                                    </li>
+                                                </ul>
+                                            </div>
+                                        </th>
+                                        <th>ID</th>
+                                        <th>User</th>
+                                        <th>Amount</th>
+                                        <th>Link</th>
+                                        <th>Quantity</th>
+                                        <th class="dropdown-th">
+                                            Service
+                                        </th>
+                                        <th>Type</th>
+                                        <th>Interval</th>
+                                        <th>Total</th>
+                                        <th>Date</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <form id="changebulkForm" action="<?php echo site_url("admin/dripfeeds/multi-action") ?>" method="post">
+                                    <tbody>
+                                        <?php foreach( $orders as $order ): ?>
+                                        <tr>
+                                            <td><input type="checkbox" <?php if( $status == "all" || $status == "canceled" ): echo "class=\"dborder-1-solid\" disabled"; else: echo 'class="selectOrder dborder-1-solid"'; endif; ?> name="order[<?php echo $order["order_id"] ?>]" value="1"></td>
+                                            <td class="p-l"><?php echo $order["order_id"] ?></td>
+                                            <td><?php echo $order["username"] ?></td>
+                                            <td><?php echo $order["dripfeed_totalcharges"] ?></td>
+                                            <td><?php echo $order["order_url"]; ?></td>
+                                            <td><?php echo $order["order_quantity"]; ?></td>
+                                            <td><?php echo $order["service_name"]; ?></td>
+                                            <td><?php echo "<a href='".site_url("admin/orders?dripfeed=".$order["order_id"])."'>".$order["dripfeed_delivery"]."</a>/".$order["dripfeed_runs"]; ?></td>
+                                            <td><?php echo $order["dripfeed_interval"]; ?></td>
+                                            <td><?php echo $order["dripfeed_totalquantity"]; ?></td>
+                                            <td><?php echo date("d.m.Y H:i:s", strtotime($order["order_create"])); ?></td>
+                                            <td><?php echo orderStatu($order["dripfeed_status"]); ?></td>
+                                            <td class="service-block__action">
+                                                <?php if( $order["dripfeed_status"] == "active" ): ?>
+                                                <div class="dropdown pull-right">
+                                                    <button type="button" class="btn btn-primary btn-xs dropdown-toggle btn-xs-caret" data-toggle="dropdown">Action</button>
+                                                    <ul class="dropdown-menu">
+                                                        <li><a href="#" data-toggle="modal" data-target="#confirmChange" data-href="<?=site_url("admin/dripfeeds/dripfeed_canceled/".$order["order_id"])?>">Cancel</a></li>
+                                                        <li><a href="#" data-toggle="modal" data-target="#confirmChange" data-href="<?=site_url("admin/dripfeeds/dripfeed_completed/".$order["order_id"])?>">Completed</a></li>
+                                                        <li><a href="#" data-toggle="modal" data-target="#confirmChange" data-href="<?=site_url("admin/dripfeeds/dripfeed_canceledbalance/".$order["order_id"])?>">Cancel and Refund</a></li>
+                                                    </ul>
+                                                </div>
+                                                <?php endif; ?>
+                                            </td>
+                                        </tr>
+                                        <?php endforeach; ?>
+                                    </tbody>
+                                    <input type="hidden" name="bulkStatus" id="bulkStatus" value="0">
+                                </form>
+                            </table></div>
+                        </div>
+                        <div class="modal modal-center fade" id="confirmChange" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" data-backdrop="static">
+                            <div class="modal-dialog modal-dialog-center" role="document">
+                                <div class="modal-content">
+                                    <div class="modal-body text-center">
+                                        <h4>Are you sure to update?</h4>
+                                        <div align="center">
+                                            <a class="btn btn-primary" href="" id="confirmYes">Yes</a>
+                                            <button type="button" class="btn btn-primary" data-dismiss="modal">No</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
-      return $statu;
-    }
+<?php include 'footer.php'; ?>
 
-  require admin_view('dripfeeds');
-
-  if( route(2) ==  "dripfeed_canceled" ):
-      $update = $conn->prepare("UPDATE orders SET dripfeed_status=:status WHERE order_id=:id ");
-      $update->execute(array("status"=>"canceled","id"=>route(3)));
-      header("Location:".site_url("admin/dripfeeds"));
-  elseif( route(2) ==  "dripfeed_completed" ):
-      $update = $conn->prepare("UPDATE orders SET dripfeed_status=:status WHERE order_id=:id ");
-      $update->execute(array("status"=>"completed","id"=>route(3)));
-      header("Location:".site_url("admin/dripfeeds"));
-  elseif( route(2) ==  "dripfeed_canceledbalance" ):
-    $id     = route(3);
-    $order  = $conn->prepare("SELECT * FROM orders INNER JOIN clients ON clients.client_id = orders.client_id WHERE orders.order_id=:id ");
-    $order ->execute(array("id"=>$id));
-    $order  = $order->fetch(PDO::FETCH_ASSOC);
-    $price  = ($order["dripfeed_totalcharges"]/$order["dripfeed_runs"])*($order["dripfeed_runs"]-$order["dripfeed_delivery"]); ## İade edilecek tutar
-      $conn->beginTransaction();
-      $update = $conn->prepare("UPDATE orders SET dripfeed_status=:status, dripfeed_totalcharges=:charges, dripfeed_runs=:runs, dripfeed_totalquantity=:quantity WHERE order_id=:id ");
-      $update = $update->execute(array("status"=>"canceled","id"=>route(3),"charges"=>$order["dripfeed_totalcharges"]-$price,"runs"=>$order["dripfeed_delivery"],"quantity"=>$order["dripfeed_delivery"]*$order["order_quantity"] ));
-      $update2= $conn->prepare("UPDATE clients SET balance=:balance, spent=:spent WHERE client_id=:id ");
-      $update2= $update2->execute(array("id"=>$order["client_id"],"spent"=>$order["spent"]-$price,"balance"=>$order["balance"]+$price ));
-      if( $update && $update2 ):
-        $conn->commit();
-      else:
-        $conn->rollBack();
-      endif;
-      header("Location:".site_url("admin/dripfeeds"));
-  elseif( route(2) == "multi-action" ):
-    $orders   = $_POST["order"];
-    $action   = $_POST["bulkStatus"];
-    if( $action ==  "canceled" ):
-      foreach ($orders as $id => $value):
-        $update = $conn->prepare("UPDATE orders SET dripfeed_status=:status WHERE order_id=:id ");
-        $update->execute(array("status"=>"canceled","id"=>$id));
-      endforeach;
-    elseif( $action ==  "completed" ):
-      foreach ($orders as $id => $value):
-        $update = $conn->prepare("UPDATE orders SET dripfeed_status=:status WHERE order_id=:id ");
-        $update->execute(array("status"=>"completed","id"=>$id));
-      endforeach;
-    elseif( $action ==  "canceledbalance" ):
-      foreach ($orders as $id => $value):
-        $order  = $conn->prepare("SELECT * FROM orders INNER JOIN clients ON clients.client_id = orders.client_id WHERE orders.order_id=:id ");
-        $order ->execute(array("id"=>$id));
-        $order  = $order->fetch(PDO::FETCH_ASSOC);
-        $price  = ($order["dripfeed_totalcharges"]/$order["dripfeed_runs"])*($order["dripfeed_runs"]-$order["dripfeed_delivery"]); ## İade edilecek tutar
-          $conn->beginTransaction();
-          $update = $conn->prepare("UPDATE orders SET dripfeed_status=:status, dripfeed_totalcharges=:charges, dripfeed_runs=:runs, dripfeed_totalquantity=:quantity WHERE order_id=:id ");
-          $update = $update->execute(array("status"=>"canceled","id"=>$id,"charges"=>$order["dripfeed_totalcharges"]-$price,"runs"=>$order["dripfeed_delivery"],"quantity"=>$order["dripfeed_delivery"]*$order["order_quantity"] ));
-          $update2= $conn->prepare("UPDATE clients SET balance=:balance, spent=:spent WHERE client_id=:id ");
-          $update2= $update2->execute(array("id"=>$order["client_id"],"spent"=>$order["spent"]-$price,"balance"=>$order["balance"]+$price ));
-          if( $update && $update2 ):
-            $conn->commit();
-          else:
-            $conn->rollBack();
-          endif;
-        endforeach;
-      endif;
-    header("Location:".site_url("admin/dripfeeds"));
-  endif;
+<script src="/assets/js/datatable/drip.js"></script>
